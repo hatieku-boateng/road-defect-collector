@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const stages = [
   {
     number: "01",
@@ -46,10 +48,12 @@ export default function Home() {
           </p>
 
           <div className="hero-actions">
-            <a className="button primary" href="#process">
-              View the first phase
+            <Link className="button primary" href="/collect">
+              Open collection form
+            </Link>
+            <a className="button secondary" href="#process">
+              View the workflow
             </a>
-            <span className="coming-soon">Image collection form comes next</span>
           </div>
         </div>
 

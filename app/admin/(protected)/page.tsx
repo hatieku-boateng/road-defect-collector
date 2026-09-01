@@ -36,6 +36,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const filters: SubmissionFilters = {
     collector: getFilter(params.collector),
     defect: getFilter(params.defect),
+    source: getFilter(params.source),
     status: getFilter(params.status),
   };
   let submissions: RoadSubmission[] = [];
@@ -78,7 +79,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <p className="eyebrow">Collection overview</p>
             <h1>Review field submissions.</h1>
           </div>
-          <Link className="button primary" href="/collect">Open collector form</Link>
+          <div className="admin-title-actions">
+            <Link className="button secondary" href="/drone">Drone AI</Link>
+            <Link className="button primary" href="/collect">Manual photo</Link>
+          </div>
         </div>
 
         {configurationError ? (
@@ -114,6 +118,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </select>
           </label>
           <label>
+            <span>Source</span>
+            <select defaultValue={filters.source} name="source">
+              <option value="">All sources</option>
+              <option value="manual">Manual photo</option>
+              <option value="drone-ai">Drone AI</option>
+            </select>
+          </label>
+          <label>
             <span>Collector</span>
             <input defaultValue={filters.collector} name="collector" placeholder="Collector ID" />
           </label>
@@ -127,7 +139,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <p className="eyebrow">Geographical coverage</p>
               <h2>Submission map</h2>
             </div>
-            <span>{submissions.length} visible locations</span>
+            <span>{submissions.filter((item) => item.latitude !== null).length} visible locations</span>
           </div>
           <MapShell submissions={submissions} />
         </section>
@@ -165,9 +177,18 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   </div>
                   <dl className="submission-meta">
                     <div><dt>Collector</dt><dd>{submission.collector_id}</dd></div>
-                    <div><dt>GPS accuracy</dt><dd>±{Math.round(submission.gps_accuracy)} m</dd></div>
-                    <div><dt>Latitude</dt><dd>{submission.latitude.toFixed(6)}</dd></div>
-                    <div><dt>Longitude</dt><dd>{submission.longitude.toFixed(6)}</dd></div>
+                    <div><dt>Source</dt><dd>{submission.source === "drone-ai" ? "Drone AI" : "Manual photo"}</dd></div>
+                    {submission.source === "drone-ai" ? (
+                      <>
+                        <div><dt>Video time</dt><dd>{submission.video_timestamp?.toFixed(1)} s</dd></div>
+                        <div><dt>AI confidence</dt><dd>{Math.round((submission.ai_confidence ?? 0) * 100)}%</dd></div>
+                      </>
+                    ) : (
+                      <>
+                        <div><dt>GPS accuracy</dt><dd>±{Math.round(submission.gps_accuracy ?? 0)} m</dd></div>
+                        <div><dt>Coordinates</dt><dd>{submission.latitude?.toFixed(5)}, {submission.longitude?.toFixed(5)}</dd></div>
+                      </>
+                    )}
                   </dl>
                   <form action={reviewSubmissionAction} className="review-form">
                     <input name="id" type="hidden" value={submission.id} />

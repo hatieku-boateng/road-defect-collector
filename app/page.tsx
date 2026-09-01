@@ -4,7 +4,7 @@ const stages = [
   {
     number: "01",
     title: "Collect",
-    text: "Capture clear road images and basic field information.",
+    text: "Capture a GPS-backed field photo or analyse sampled drone frames.",
   },
   {
     number: "02",
@@ -40,16 +40,19 @@ export default function Home() {
       <section className="hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow">Safer roads through better data</p>
-          <h1>Building a clearer picture of Ghana&apos;s road conditions.</h1>
+          <h1>Report roads manually or survey them with AI.</h1>
           <p className="intro">
-            This project will help trained collectors document road defects,
-            support quality review, and prepare reliable data for future AI
-            detection and mapping.
+            Collectors can take GPS-backed road photographs, while reviewers can
+            use open-source AI to find pothole candidates in drone footage. Every
+            record still passes through human verification.
           </p>
 
           <div className="hero-actions">
             <Link className="button primary" href="/collect">
-              Open collection form
+              Take or upload a photo
+            </Link>
+            <Link className="button secondary" href="/drone">
+              Analyse drone footage
             </Link>
             <a className="button secondary" href="#process">
               View the workflow

@@ -14,7 +14,9 @@ function getText(formData: FormData, key: string) {
 }
 
 function getNumber(formData: FormData, key: string) {
-  const value = Number(getText(formData, key));
+  const textValue = getText(formData, key);
+  if (!textValue) return null;
+  const value = Number(textValue);
   return Number.isFinite(value) ? value : null;
 }
 
@@ -42,7 +44,14 @@ export async function POST(request: Request) {
   const longitude = getNumber(formData, "longitude");
   const gpsAccuracy = getNumber(formData, "gpsAccuracy");
   const gpsTimestamp = getText(formData, "gpsTimestamp");
+  const source = getText(formData, "source") || "manual";
+  const videoTimestamp = getNumber(formData, "videoTimestamp");
+  const aiConfidence = getNumber(formData, "aiConfidence");
   const image = formData.get("roadImage");
+
+  if (source !== "manual" && source !== "drone-ai") {
+    return NextResponse.json({ error: "Select a valid submission source." }, { status: 400 });
+  }
 
   if (!/^[a-z0-9][a-z0-9_-]{2,49}$/i.test(collectorId)) {
     return NextResponse.json(
@@ -65,7 +74,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (
+  if (source === "manual" && (
     latitude === null ||
     longitude === null ||
     latitude < -90 ||
@@ -74,16 +83,27 @@ export async function POST(request: Request) {
     longitude > 180 ||
     gpsAccuracy === null ||
     gpsAccuracy < 0
-  ) {
+  )) {
     return NextResponse.json(
       { error: "Capture a valid GPS location before submitting." },
       { status: 400 },
     );
   }
 
-  if (!gpsTimestamp || Number.isNaN(Date.parse(gpsTimestamp))) {
+  if (source === "manual" && (!gpsTimestamp || Number.isNaN(Date.parse(gpsTimestamp)))) {
     return NextResponse.json(
       { error: "The GPS capture time is invalid. Capture the location again." },
+      { status: 400 },
+    );
+  }
+
+  if (
+    source === "drone-ai" &&
+    (videoTimestamp === null || videoTimestamp < 0 || aiConfidence === null ||
+      aiConfidence < 0 || aiConfidence > 1)
+  ) {
+    return NextResponse.json(
+      { error: "The drone candidate metadata is invalid." },
       { status: 400 },
     );
   }
@@ -128,9 +148,11 @@ export async function POST(request: Request) {
         INSERT INTO road_submissions (
           id, collector_id, area_name, suspected_defect,
           latitude, longitude, gps_accuracy, gps_timestamp,
-          image_path, image_name, image_type, image_size
+          image_path, image_name, image_type, image_size,
+          source, video_timestamp, ai_confidence
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::timestamptz,
+          $9, $10, $11, $12, $13, $14, $15)
       `,
       [
         id,
@@ -145,6 +167,9 @@ export async function POST(request: Request) {
         image.name,
         image.type,
         image.size,
+        source,
+        videoTimestamp,
+        aiConfidence,
       ],
     );
 

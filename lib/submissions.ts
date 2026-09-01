@@ -5,24 +5,28 @@ export type RoadSubmission = {
   area_name: string;
   collector_id: string;
   created_at: string;
-  gps_accuracy: number;
-  gps_timestamp: string;
+  ai_confidence: number | null;
+  gps_accuracy: number | null;
+  gps_timestamp: string | null;
   id: string;
   image_name: string;
   image_path: string;
   image_size: number;
   image_type: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   review_note: string | null;
   reviewed_at: string | null;
   status: ReviewStatus;
+  source: "drone-ai" | "manual";
   suspected_defect: DefectType;
+  video_timestamp: number | null;
 };
 
 export type SubmissionFilters = {
   collector?: string;
   defect?: string;
+  source?: string;
   status?: string;
 };
 
@@ -37,10 +41,16 @@ export async function listSubmissions(filters: SubmissionFilters = {}) {
       WHERE ($1::text = '' OR status = $1)
         AND ($2::text = '' OR suspected_defect = $2)
         AND ($3::text = '' OR collector_id ILIKE '%' || $3 || '%')
+        AND ($4::text = '' OR source = $4)
       ORDER BY created_at DESC
       LIMIT 500
     `,
-    [filters.status ?? "", filters.defect ?? "", filters.collector ?? ""],
+    [
+      filters.status ?? "",
+      filters.defect ?? "",
+      filters.collector ?? "",
+      filters.source ?? "",
+    ],
   );
 
   return rows as RoadSubmission[];

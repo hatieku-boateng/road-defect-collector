@@ -35,6 +35,9 @@ export async function ensureSchema() {
           review_note TEXT,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           reviewed_at TIMESTAMPTZ,
+          source VARCHAR(20) NOT NULL DEFAULT 'manual',
+          video_timestamp DOUBLE PRECISION,
+          ai_confidence DOUBLE PRECISION,
           CONSTRAINT road_submissions_status_check
             CHECK (status IN ('pending', 'approved', 'rejected')),
           CONSTRAINT road_submissions_defect_check
@@ -43,6 +46,18 @@ export async function ensureSchema() {
             ))
         )
       `;
+
+      await sql`
+        ALTER TABLE road_submissions
+        ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'manual',
+        ADD COLUMN IF NOT EXISTS video_timestamp DOUBLE PRECISION,
+        ADD COLUMN IF NOT EXISTS ai_confidence DOUBLE PRECISION
+      `;
+
+      await sql`ALTER TABLE road_submissions ALTER COLUMN latitude DROP NOT NULL`;
+      await sql`ALTER TABLE road_submissions ALTER COLUMN longitude DROP NOT NULL`;
+      await sql`ALTER TABLE road_submissions ALTER COLUMN gps_accuracy DROP NOT NULL`;
+      await sql`ALTER TABLE road_submissions ALTER COLUMN gps_timestamp DROP NOT NULL`;
 
       await sql`
         CREATE INDEX IF NOT EXISTS road_submissions_created_at_idx

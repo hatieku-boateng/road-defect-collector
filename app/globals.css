@@ -377,6 +377,196 @@ footer p {
     var(--surface);
 }
 
+.drone-page {
+  background:
+    radial-gradient(circle at 86% 22%, rgb(241 180 76 / 14%), transparent 27%),
+    var(--surface);
+}
+
+.drone-shell {
+  align-items: start;
+  display: grid;
+  gap: 56px;
+  grid-template-columns: minmax(300px, 0.72fr) minmax(520px, 1.28fr);
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: 72px 28px 100px;
+}
+
+.drone-intro {
+  padding-top: 34px;
+  position: sticky;
+  top: 20px;
+}
+
+.drone-intro h1 {
+  font-size: clamp(42px, 5vw, 64px);
+}
+
+.drone-intro > p:not(.eyebrow) {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.75;
+  margin: 24px 0 28px;
+}
+
+.ai-caution {
+  background: #fff5dc;
+  border: 1px solid #f1d69f;
+  border-radius: 15px;
+  display: grid;
+  gap: 5px;
+  padding: 16px;
+}
+
+.ai-caution strong {
+  color: #714c0a;
+  font-size: 12px;
+}
+
+.ai-caution span {
+  color: #806638;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.drone-workspace {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 24px 60px rgb(25 55 44 / 10%);
+  display: grid;
+  gap: 20px;
+  padding: 30px;
+}
+
+.ai-status {
+  background: #f4f7f4;
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+  margin: -7px 0 0;
+  min-height: 36px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.analysis-media {
+  display: none;
+}
+
+.candidate-review {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 18px;
+  margin-top: 6px;
+  padding-top: 24px;
+}
+
+.candidate-heading {
+  align-items: end;
+  display: flex;
+  justify-content: space-between;
+}
+
+.candidate-heading .eyebrow {
+  margin-bottom: 5px;
+}
+
+.candidate-heading h3 {
+  font-size: 22px;
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+
+.candidate-heading > span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.candidate-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.candidate-card {
+  background: #f4f7f4;
+  border: 2px solid transparent;
+  border-radius: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+}
+
+.candidate-card:hover:not(:disabled) {
+  border-color: #8eb7a3;
+}
+
+.candidate-selected {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgb(11 93 75 / 10%);
+}
+
+.candidate-saved {
+  border-color: #84c29f;
+  cursor: default;
+  opacity: 0.72;
+}
+
+.candidate-image {
+  aspect-ratio: 16 / 10;
+  background: #dfe6e1;
+  display: block;
+  overflow: hidden;
+  position: relative;
+}
+
+.candidate-image img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.detection-box {
+  border: 3px solid #ffbf47;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 35%);
+  position: absolute;
+}
+
+.candidate-details {
+  display: block;
+  padding: 11px 12px;
+}
+
+.candidate-details strong,
+.candidate-details small {
+  display: block;
+}
+
+.candidate-details strong {
+  font-size: 10px;
+}
+
+.candidate-details small {
+  color: var(--muted);
+  font-size: 8px;
+  margin-top: 4px;
+}
+
+.candidate-submit {
+  background: #f4f7f4;
+  border-radius: 15px;
+  display: grid;
+  gap: 14px;
+  padding: 17px;
+}
+
 .collection-header {
   border-bottom: 1px solid var(--line);
 }
@@ -958,6 +1148,12 @@ footer p {
   justify-content: space-between;
 }
 
+.admin-title-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
 .admin-title-row h1 {
   font-size: clamp(40px, 5vw, 62px);
 }
@@ -1009,7 +1205,7 @@ footer p {
   border-radius: 16px;
   display: grid;
   gap: 12px;
-  grid-template-columns: 1fr 1fr 1.2fr auto auto;
+  grid-template-columns: 1fr 1fr 1fr 1.2fr auto auto;
   padding: 16px;
 }
 
@@ -1244,6 +1440,17 @@ footer p {
     padding-top: 38px;
   }
 
+  .drone-shell {
+    gap: 34px;
+    grid-template-columns: 1fr;
+    padding-top: 38px;
+  }
+
+  .drone-intro {
+    padding-top: 0;
+    position: static;
+  }
+
   .collection-intro {
     padding-top: 0;
   }
@@ -1297,6 +1504,19 @@ footer p {
 
   .collection-shell {
     padding: 34px 20px 70px;
+  }
+
+  .drone-shell {
+    padding: 34px 20px 70px;
+  }
+
+  .drone-workspace {
+    border-radius: 18px;
+    padding: 22px 18px;
+  }
+
+  .candidate-grid {
+    grid-template-columns: 1fr;
   }
 
   .collection-form {

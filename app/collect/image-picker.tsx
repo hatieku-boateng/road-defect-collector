@@ -84,6 +84,7 @@ export default function ImagePicker() {
         accept="image/jpeg,image/png,image/webp"
         aria-describedby="road-image-guidance road-image-error"
         aria-invalid={Boolean(error)}
+        capture="environment"
         id="road-image"
         name="roadImage"
         onChange={handleImageChange}

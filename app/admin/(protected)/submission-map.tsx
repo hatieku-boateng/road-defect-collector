@@ -14,15 +14,20 @@ export default function SubmissionMap({
 }: {
   submissions: RoadSubmission[];
 }) {
-  if (submissions.length === 0) {
+  const mappedSubmissions = submissions.filter(
+    (submission): submission is RoadSubmission & { latitude: number; longitude: number } =>
+      submission.latitude !== null && submission.longitude !== null,
+  );
+
+  if (mappedSubmissions.length === 0) {
     return <div className="map-loading">No locations match the current filters.</div>;
   }
 
   const centre: [number, number] = [
-    submissions.reduce((sum, item) => sum + item.latitude, 0) /
-      submissions.length,
-    submissions.reduce((sum, item) => sum + item.longitude, 0) /
-      submissions.length,
+    mappedSubmissions.reduce((sum, item) => sum + item.latitude, 0) /
+      mappedSubmissions.length,
+    mappedSubmissions.reduce((sum, item) => sum + item.longitude, 0) /
+      mappedSubmissions.length,
   ];
 
   return (
@@ -31,7 +36,7 @@ export default function SubmissionMap({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {submissions.map((submission) => (
+      {mappedSubmissions.map((submission) => (
         <CircleMarker
           center={[submission.latitude, submission.longitude]}
           fillColor={statusColours[submission.status]}

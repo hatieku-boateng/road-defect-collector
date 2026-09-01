@@ -9,6 +9,13 @@ type Preview = {
   url: string;
 };
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) {
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -20,6 +27,7 @@ function formatFileSize(bytes: number) {
 export default function ImagePicker() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -34,9 +42,25 @@ export default function ImagePicker() {
 
     if (!file) {
       setPreview(null);
+      setError(null);
       return;
     }
 
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      event.target.value = "";
+      setPreview(null);
+      setError("Please choose a JPG, PNG, or WebP image.");
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      event.target.value = "";
+      setPreview(null);
+      setError("This image is larger than 10 MB. Please choose a smaller file.");
+      return;
+    }
+
+    setError(null);
     setPreview({
       name: file.name,
       size: formatFileSize(file.size),
@@ -50,13 +74,16 @@ export default function ImagePicker() {
     }
 
     setPreview(null);
+    setError(null);
   }
 
   return (
     <div className="field image-field">
       <label htmlFor="road-image">Road image</label>
       <input
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
+        aria-describedby="road-image-guidance road-image-error"
+        aria-invalid={Boolean(error)}
         id="road-image"
         name="roadImage"
         onChange={handleImageChange}
@@ -64,7 +91,13 @@ export default function ImagePicker() {
         required
         type="file"
       />
-      <small>Use a clear JPG, PNG, or HEIC image.</small>
+      <small id="road-image-guidance">
+        JPG, PNG, or WebP only. Maximum size: 10 MB.
+      </small>
+
+      <p className="field-error" id="road-image-error" role="alert">
+        {error}
+      </p>
 
       {preview ? (
         <div className="image-preview">

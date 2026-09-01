@@ -613,11 +613,25 @@ footer p {
   outline: none;
 }
 
+.field input[aria-invalid="true"] {
+  border-color: #b44a38;
+  box-shadow: 0 0 0 3px rgb(180 74 56 / 10%);
+}
+
 .field small,
 .location-field small {
   color: var(--muted);
   display: block;
   font-size: 10px;
+}
+
+.field-error {
+  color: #a43d2d;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: -2px 0 0;
+  min-height: 14px;
 }
 
 .location-field {

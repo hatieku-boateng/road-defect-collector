@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ImagePicker from "./image-picker";
+import LocationCapture from "./location-capture";
 
 export const metadata: Metadata = {
   title: "Collector Submission",
@@ -82,15 +83,7 @@ export default function CollectPage() {
             />
           </label>
 
-          <div className="location-field">
-            <div>
-              <span>GPS location</span>
-              <small>Location capture will be connected next.</small>
-            </div>
-            <button disabled type="button">
-              Capture GPS
-            </button>
-          </div>
+          <LocationCapture />
 
           <button className="submit-button" disabled type="submit">
             Submit record

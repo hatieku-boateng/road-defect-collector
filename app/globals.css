@@ -640,9 +640,14 @@ footer p {
   border: 1px dashed #b9cbbf;
   border-radius: 13px;
   display: flex;
+  flex-wrap: wrap;
   gap: 18px;
   justify-content: space-between;
   padding: 14px;
+}
+
+.location-copy {
+  flex: 1 1 auto;
 }
 
 .location-field small {
@@ -659,9 +664,60 @@ footer p {
   padding: 12px 16px;
 }
 
+.location-field button {
+  background: var(--green);
+  color: white;
+}
+
+.location-field button:hover:not(:disabled) {
+  background: var(--green-dark);
+}
+
 .location-field button:disabled {
-  background: #dfe6e1;
-  color: #78867f;
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.location-result {
+  display: grid;
+  flex: 0 0 100%;
+  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 2px 0 0;
+}
+
+.location-result div {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  min-width: 0;
+  padding: 10px;
+}
+
+.location-result dt {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 750;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.location-result dd {
+  font-size: 10px;
+  font-weight: 800;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.location-error {
+  color: #a43d2d;
+  flex: 0 0 100%;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0;
+  min-height: 14px;
 }
 
 .submit-button {
@@ -753,6 +809,10 @@ footer p {
   .location-field {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .location-result {
+    grid-template-columns: 1fr;
   }
 
   footer {

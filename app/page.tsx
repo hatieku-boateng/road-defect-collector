@@ -14,7 +14,7 @@ const stages = [
   {
     number: "03",
     title: "Map",
-    text: "Later, connect verified defects to their GPS locations.",
+    text: "View collected road records at their GPS locations on the administrator map.",
   },
 ];
 
@@ -33,7 +33,7 @@ export default function Home() {
         </a>
 
         <span className="status-badge">
-          <span aria-hidden="true" /> Foundation phase
+          <span aria-hidden="true" /> Collection module live
         </span>
       </header>
 
@@ -84,8 +84,8 @@ export default function Home() {
 
       <section className="process" id="process">
         <div className="section-heading">
-          <p className="eyebrow">Initial workflow</p>
-          <h2>Start simple, then build steadily.</h2>
+          <p className="eyebrow">Operational workflow</p>
+          <h2>Collect, review, and map road evidence.</h2>
         </div>
 
         <div className="stage-grid">

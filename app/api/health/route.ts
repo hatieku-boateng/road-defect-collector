@@ -7,7 +7,7 @@ export function GET() {
   return Response.json(
     {
       admin,
-      application: "ghana-road-defect-monitoring",
+      application: "road-defect-collector",
       status: storage && admin ? "ready" : "configuration-required",
       storage,
     },

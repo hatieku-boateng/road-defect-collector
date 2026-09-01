@@ -39,8 +39,8 @@ export default async function CollectPage({ searchParams }: CollectPageProps) {
           <p className="eyebrow">Field data collection</p>
           <h1>Submit a road image.</h1>
           <p>
-            Add the basic details for one road image. Camera access, GPS capture,
-            and database submission will be connected in later stages.
+            Capture or upload one clear road image, attach its precise GPS
+            location, and submit the record securely for quality review.
           </p>
 
           <div className="form-note">
@@ -64,7 +64,7 @@ export default async function CollectPage({ searchParams }: CollectPageProps) {
               <p className="eyebrow">New record</p>
               <h2>Image details</h2>
             </div>
-            <span>Draft interface</span>
+            <span>Live collection</span>
           </div>
 
           <label className="field">

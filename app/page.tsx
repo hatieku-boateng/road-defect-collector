@@ -54,6 +54,9 @@ export default function Home() {
             <a className="button secondary" href="#process">
               View the workflow
             </a>
+            <Link className="text-button" href="/admin/login">
+              Administrator sign in
+            </Link>
           </div>
         </div>
 
@@ -98,7 +101,7 @@ export default function Home() {
 
       <footer>
         <p>Ghana Road Defect Monitoring Project</p>
-        <p>Prototype foundation • 2026</p>
+        <p>Road image collection module • 2026</p>
       </footer>
     </main>
   );

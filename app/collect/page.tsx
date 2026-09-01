@@ -2,13 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ImagePicker from "./image-picker";
 import LocationCapture from "./location-capture";
+import SubmissionControls from "./submission-controls";
 
 export const metadata: Metadata = {
   title: "Collector Submission",
   description: "Submit a road image and its basic collection details.",
 };
 
-export default function CollectPage() {
+type CollectPageProps = {
+  searchParams: Promise<{ submitted?: string }>;
+};
+
+export default async function CollectPage({ searchParams }: CollectPageProps) {
+  const { submitted } = await searchParams;
+
   return (
     <main className="collection-page">
       <header className="site-header collection-header">
@@ -46,6 +53,12 @@ export default function CollectPage() {
         </div>
 
         <form className="collection-form">
+          {submitted ? (
+            <div className="submission-success" role="status">
+              <strong>Record submitted successfully.</strong>
+              <span>Reference: {submitted}</span>
+            </div>
+          ) : null}
           <div className="form-heading">
             <div>
               <p className="eyebrow">New record</p>
@@ -85,12 +98,7 @@ export default function CollectPage() {
 
           <LocationCapture />
 
-          <button className="submit-button" disabled type="submit">
-            Submit record
-          </button>
-          <p className="form-status">
-            Submission is disabled until storage and validation are connected.
-          </p>
+          <SubmissionControls />
         </form>
       </section>
     </main>

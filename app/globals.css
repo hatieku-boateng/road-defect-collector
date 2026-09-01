@@ -489,6 +489,7 @@ footer p {
 }
 
 .field > span,
+.image-field > label,
 .location-field > div > span {
   font-size: 12px;
   font-weight: 750;
@@ -509,6 +510,100 @@ footer p {
 
 .field input[type="file"] {
   padding: 9px;
+}
+
+.image-preview {
+  background: #f4f7f4;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.preview-frame {
+  aspect-ratio: 16 / 10;
+  background: #dfe6e1;
+  overflow: hidden;
+  position: relative;
+}
+
+.preview-frame img {
+  object-fit: cover;
+}
+
+.preview-details {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.preview-details p {
+  min-width: 0;
+  margin: 0;
+}
+
+.preview-details strong,
+.preview-details span {
+  display: block;
+}
+
+.preview-details strong {
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-details span {
+  color: var(--muted);
+  font-size: 9px;
+  margin-top: 3px;
+}
+
+.preview-details button {
+  background: transparent;
+  border: 0;
+  color: #8a3d2f;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 7px;
+}
+
+.preview-details button:hover {
+  text-decoration: underline;
+}
+
+.preview-placeholder {
+  align-items: center;
+  background: #f4f7f4;
+  border: 1px dashed #b9cbbf;
+  border-radius: 13px;
+  color: var(--muted);
+  display: flex;
+  gap: 10px;
+  padding: 16px;
+}
+
+.preview-placeholder span {
+  align-items: center;
+  background: #e2ece5;
+  border-radius: 9px;
+  color: var(--green);
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 20px;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.preview-placeholder p {
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .field input:focus,

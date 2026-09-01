@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ImagePicker from "./image-picker";
 
 export const metadata: Metadata = {
   title: "Collector Submission",
@@ -57,11 +58,7 @@ export default function CollectPage() {
             <input name="collectorId" placeholder="e.g. COL-001" required />
           </label>
 
-          <label className="field">
-            <span>Road image</span>
-            <input accept="image/*" name="roadImage" type="file" required />
-            <small>Use a clear JPG, PNG, or HEIC image.</small>
-          </label>
+          <ImagePicker />
 
           <label className="field">
             <span>Suspected defect type</span>

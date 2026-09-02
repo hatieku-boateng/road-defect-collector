@@ -40,6 +40,7 @@ function formatDate(value: string) {
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const params = await searchParams;
   const updateResult = getFilter(params.update);
+  const updateError = getFilter(params.error);
   const filters: SubmissionFilters = {
     collector: getFilter(params.collector),
     defect: getFilter(params.defect),
@@ -108,6 +109,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         {updateResult === "failed" ? (
           <p className="status-update-message status-update-failed" role="alert">
             The status could not be updated. Please reload and try again.
+            {updateError ? ` Error reference: ${updateError}.` : ""}
           </p>
         ) : null}
 

@@ -80,20 +80,26 @@ export async function updateSubmissionReview(
 ) {
   await ensureSchema();
   const sql = getSql();
+  const reviewStatus = status === "pending"
+    ? "pending"
+    : status === "rejected"
+      ? "rejected"
+      : "approved";
 
-  await sql.query(
+  const updated = await sql.query(
     `
       UPDATE road_submissions
       SET workflow_status = $2,
-          status = CASE
-            WHEN $2 = 'pending' THEN 'pending'
-            WHEN $2 = 'rejected' THEN 'rejected'
-            ELSE 'approved'
-          END,
-          review_note = NULLIF($3, ''),
+          status = $3,
+          review_note = NULLIF($4, ''),
           reviewed_at = NOW()
       WHERE id = $1
+      RETURNING id
     `,
-    [id, status, note],
+    [id, status, reviewStatus, note],
   );
+
+  if (updated.length === 0) {
+    throw new Error("Submission not found.");
+  }
 }

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
+import PwaRegister from "./pwa-register";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -15,6 +16,20 @@ export const metadata: Metadata = {
   },
   description:
     "A data collection and monitoring platform for identifying road defects across Ghana.",
+  applicationName: "Ghana Road Defect Collector",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Road Collector",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+    icon: [
+      { url: "/icons/road-collector-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/road-collector-512.png", sizes: "512x512", type: "image/png" },
+    ],
+  },
 };
 
 export const viewport: Viewport = {
@@ -28,7 +43,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={inter.variable}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <PwaRegister />
+      </body>
     </html>
   );
 }

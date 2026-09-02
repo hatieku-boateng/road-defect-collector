@@ -20,6 +20,9 @@ A mobile-friendly road image collection and quality-review system designed to pr
 - Public dashboard of non-rejected reports and maintenance progress
 - Public map and directions for verified GPS-backed reports
 - Public-data redaction for collector, device and unverified location details
+- Recoverable administrator archive with submission restore
+- Privacy-processed repair progress photos organised as before, in-progress and after
+- Publicly scrollable road-repair image timelines
 - Local drone-video frame extraction
 - Open-source Grounding DINO pothole candidate detection
 - Human selection of AI candidates before upload
@@ -34,6 +37,7 @@ A mobile-friendly road image collection and quality-review system designed to pr
 - `/reports` — public road-defect and maintenance-status dashboard
 - `/admin/login` — administrator sign-in
 - `/admin` — protected review dashboard
+- `/admin/archives` — protected archive and restore view
 - `/api/health` — deployment configuration check
 
 ## Required environment variables

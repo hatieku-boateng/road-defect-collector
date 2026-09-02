@@ -57,7 +57,7 @@ self.onmessage = async (event) => {
   try {
     if (task === "privacy") {
       const detector = await getPrivacyDetector();
-      const output = await detector(image, { threshold: 0.62 });
+      const output = await detector(image, { threshold: 0.35 });
       self.postMessage({
         id,
         kind: "result",

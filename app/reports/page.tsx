@@ -7,8 +7,10 @@ import {
   WORKFLOW_STATUS_LABELS,
 } from "../../lib/config";
 import {
+  listPublicProgressImages,
   listPublicSubmissions,
   type PublicRoadSubmission,
+  type RoadProgressImage,
 } from "../../lib/submissions";
 import MapShell from "./map-shell";
 
@@ -30,10 +32,14 @@ function formatDate(value: string) {
 
 export default async function PublicReportsPage() {
   let submissions: PublicRoadSubmission[] = [];
+  let progressImages: RoadProgressImage[] = [];
   let loadingError = false;
 
   try {
-    submissions = await listPublicSubmissions();
+    [submissions, progressImages] = await Promise.all([
+      listPublicSubmissions(),
+      listPublicProgressImages(),
+    ]);
   } catch {
     loadingError = true;
   }
@@ -52,6 +58,12 @@ export default async function PublicReportsPage() {
   const mappedCount = submissions.filter(
     (submission) => submission.latitude !== null && submission.longitude !== null,
   ).length;
+  const progressBySubmission = new Map<string, RoadProgressImage[]>();
+  for (const image of progressImages) {
+    const images = progressBySubmission.get(image.submission_id) ?? [];
+    images.push(image);
+    progressBySubmission.set(image.submission_id, images);
+  }
 
   return (
     <main className="public-reports-page">
@@ -132,14 +144,36 @@ export default async function PublicReportsPage() {
 
               return (
                 <article className="public-report-card" key={submission.id}>
-                  <div className="public-report-image">
-                    <Image
-                      alt={`Road defect report from ${submission.area_name}`}
-                      fill
-                      sizes="(max-width: 720px) 100vw, (max-width: 1050px) 50vw, 33vw"
-                      src={`/api/public/images/${submission.id}`}
-                      unoptimized
-                    />
+                  <div className="public-timeline-gallery" aria-label="Road repair image timeline">
+                    <figure>
+                      <span className="public-report-image">
+                        <Image
+                          alt={`Road defect before repair at ${submission.area_name}`}
+                          fill
+                          sizes="(max-width: 720px) 88vw, (max-width: 1050px) 45vw, 31vw"
+                          src={`/api/public/images/${submission.id}`}
+                          unoptimized
+                        />
+                      </span>
+                      <figcaption>Before</figcaption>
+                    </figure>
+                    {progressBySubmission.get(submission.id)?.map((progress) => (
+                      <figure key={progress.id}>
+                        <span className="public-report-image">
+                          <Image
+                            alt={`${progress.stage} road repair at ${submission.area_name}`}
+                            fill
+                            sizes="(max-width: 720px) 88vw, (max-width: 1050px) 45vw, 31vw"
+                            src={`/api/public/progress-images/${progress.id}`}
+                            unoptimized
+                          />
+                        </span>
+                        <figcaption>
+                          <strong>{progress.stage.replaceAll("-", " ")}</strong>
+                          {progress.note ? <span>{progress.note}</span> : null}
+                        </figcaption>
+                      </figure>
+                    ))}
                     <span className={`review-badge review-${submission.workflow_status}`}>
                       {WORKFLOW_STATUS_LABELS[submission.workflow_status]}
                     </span>

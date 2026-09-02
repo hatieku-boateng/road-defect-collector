@@ -9,10 +9,13 @@ import {
   WORKFLOW_STATUS_LABELS,
 } from "../../../lib/config";
 import {
+  listProgressImages,
   listSubmissions,
+  type RoadProgressImage,
   type RoadSubmission,
   type SubmissionFilters,
 } from "../../../lib/submissions";
+import ImagePicker from "../../collect/image-picker";
 import { logoutAction } from "../actions";
 import MapShell from "./map-shell";
 
@@ -48,10 +51,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     status: getFilter(params.status),
   };
   let submissions: RoadSubmission[] = [];
+  let progressImages: RoadProgressImage[] = [];
   let configurationError = "";
 
   try {
-    submissions = await listSubmissions(filters);
+    [submissions, progressImages] = await Promise.all([
+      listSubmissions(filters),
+      listProgressImages(),
+    ]);
   } catch {
     configurationError =
       "Persistent storage is not configured yet. Connect Neon and Vercel Blob to activate the dashboard.";
@@ -69,6 +76,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     },
     { active: 0, completed: 0, pending: 0, rejected: 0, total: 0, verified: 0 },
   );
+  const progressBySubmission = new Map<string, RoadProgressImage[]>();
+  for (const image of progressImages) {
+    const images = progressBySubmission.get(image.submission_id) ?? [];
+    images.push(image);
+    progressBySubmission.set(image.submission_id, images);
+  }
 
   return (
     <main className="admin-page">
@@ -92,6 +105,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <h1>Review field submissions.</h1>
           </div>
           <div className="admin-title-actions">
+            <Link className="button secondary" href="/admin/archives">Archives</Link>
             <Link className="button secondary" href="/drone">Drone AI</Link>
             <Link className="button primary" href="/collect">Manual photo</Link>
           </div>
@@ -110,6 +124,26 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <p className="status-update-message status-update-failed" role="alert">
             The status could not be updated. Please reload and try again.
             {updateError ? ` Error reference: ${updateError}.` : ""}
+          </p>
+        ) : null}
+        {getFilter(params.archive) === "success" ? (
+          <p className="status-update-message status-update-success" role="status">
+            Submission moved to the archives.
+          </p>
+        ) : null}
+        {getFilter(params.archive) === "failed" ? (
+          <p className="status-update-message status-update-failed" role="alert">
+            The submission could not be archived.
+          </p>
+        ) : null}
+        {getFilter(params.progress) === "success" ? (
+          <p className="status-update-message status-update-success" role="status">
+            Repair progress image added successfully.
+          </p>
+        ) : null}
+        {getFilter(params.progress) === "failed" ? (
+          <p className="status-update-message status-update-failed" role="alert">
+            The progress image could not be added. Check every field and try again.
           </p>
         ) : null}
 
@@ -223,6 +257,30 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       </>
                     )}
                   </dl>
+                  {(progressBySubmission.get(submission.id)?.length ?? 0) > 0 ? (
+                    <div className="admin-progress-gallery">
+                      <h4>Repair progress</h4>
+                      <div>
+                        {progressBySubmission.get(submission.id)?.map((progress) => (
+                          <figure key={progress.id}>
+                            <span className="admin-progress-image">
+                              <Image
+                                alt={`${progress.stage} road repair`}
+                                fill
+                                sizes="180px"
+                                src={`/api/progress-images/${progress.id}`}
+                                unoptimized
+                              />
+                            </span>
+                            <figcaption>
+                              <strong>{progress.stage.replaceAll("-", " ")}</strong>
+                              {progress.note ? <span>{progress.note}</span> : null}
+                            </figcaption>
+                          </figure>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   {submission.latitude !== null && submission.longitude !== null &&
                   statusAllowsDirections(submission.workflow_status) ? (
                     <a
@@ -260,6 +318,43 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <button type="submit">Update status</button>
                     </div>
                   </form>
+                  <details className="progress-upload-panel">
+                    <summary>Add repair progress image</summary>
+                    <form action="/api/admin/submissions/progress" method="post">
+                      <input name="submissionId" type="hidden" value={submission.id} />
+                      <div className="progress-fields">
+                        <label>
+                          <span>Repair stage</span>
+                          <select defaultValue="in-progress" name="stage" required>
+                            <option value="in-progress">In progress</option>
+                            <option value="after">After repair</option>
+                          </select>
+                        </label>
+                        <label>
+                          <span>Photo date and time</span>
+                          <input name="capturedAt" type="datetime-local" />
+                        </label>
+                        <label className="progress-note-field">
+                          <span>Public progress note</span>
+                          <textarea maxLength={500} name="note" placeholder="Optional update about the repair" />
+                        </label>
+                      </div>
+                      <ImagePicker />
+                      <button className="button primary" type="submit">Add progress image</button>
+                    </form>
+                  </details>
+                  <details className="archive-panel">
+                    <summary>Archive this submission</summary>
+                    <form action="/api/admin/submissions/archive" method="post">
+                      <input name="id" type="hidden" value={submission.id} />
+                      <label>
+                        <span>Archive reason</span>
+                        <textarea maxLength={500} name="reason" placeholder="Optional internal reason" />
+                      </label>
+                      <p>The report and all its images will leave the public dashboard but remain available in Archives.</p>
+                      <button type="submit">Move to archives</button>
+                    </form>
+                  </details>
                 </div>
               </article>
             ))}

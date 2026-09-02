@@ -1610,6 +1610,7 @@ footer p {
 .public-report-image {
   aspect-ratio: 4 / 3;
   background: #dfe6e1;
+  display: block;
   position: relative;
 }
 
@@ -1622,6 +1623,261 @@ footer p {
   gap: 17px;
   padding: 20px;
 }
+
+.public-timeline-gallery {
+  display: flex;
+  overflow-x: auto;
+  position: relative;
+  scroll-snap-type: x mandatory;
+  scrollbar-color: #9bb5a5 transparent;
+}
+
+.public-timeline-gallery figure {
+  flex: 0 0 100%;
+  margin: 0;
+  scroll-snap-align: start;
+}
+
+.public-timeline-gallery figcaption {
+  background: var(--green-dark);
+  color: white;
+  display: grid;
+  gap: 3px;
+  min-height: 36px;
+  padding: 9px 13px;
+  text-transform: capitalize;
+}
+
+.public-timeline-gallery figcaption strong,
+.public-timeline-gallery figcaption:not(:has(strong)) {
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.public-timeline-gallery figcaption span {
+  color: #c8d8d2;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.public-timeline-gallery .review-badge {
+  position: absolute;
+  z-index: 2;
+}
+
+.admin-progress-gallery {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.admin-progress-gallery h4 {
+  font-size: 11px;
+  margin: 0 0 10px;
+}
+
+.admin-progress-gallery > div {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+}
+
+.admin-progress-gallery figure {
+  flex: 0 0 180px;
+  margin: 0;
+}
+
+.admin-progress-image {
+  aspect-ratio: 4 / 3;
+  background: #dfe6e1;
+  border-radius: 9px;
+  display: block;
+  overflow: hidden;
+  position: relative;
+}
+
+.admin-progress-image img {
+  object-fit: cover;
+}
+
+.admin-progress-gallery figcaption {
+  display: grid;
+  gap: 3px;
+  padding: 7px 2px;
+  text-transform: capitalize;
+}
+
+.admin-progress-gallery figcaption strong { font-size: 9px; }
+.admin-progress-gallery figcaption span { color: var(--muted); font-size: 8px; }
+
+.progress-upload-panel,
+.archive-panel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 13px;
+}
+
+.progress-upload-panel summary,
+.archive-panel summary {
+  color: var(--green-dark);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.progress-upload-panel > form,
+.archive-panel > form {
+  display: grid;
+  gap: 13px;
+  margin-top: 16px;
+}
+
+.progress-fields {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.progress-fields label,
+.archive-panel label {
+  display: grid;
+  gap: 6px;
+}
+
+.progress-fields label span,
+.archive-panel label span {
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.progress-fields input,
+.progress-fields select,
+.progress-fields textarea,
+.archive-panel textarea {
+  background: #fbfcfb;
+  border: 1px solid #cad8cf;
+  border-radius: 9px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 10px;
+  min-height: 39px;
+  padding: 9px 10px;
+  width: 100%;
+}
+
+.progress-note-field { grid-column: 1 / -1; }
+.progress-fields textarea,
+.archive-panel textarea { min-height: 60px; resize: vertical; }
+
+.progress-upload-panel .image-field {
+  margin: 0;
+}
+
+.progress-upload-panel .button {
+  border: 0;
+  justify-self: start;
+}
+
+.archive-panel {
+  border-color: #e4c7c1;
+}
+
+.archive-panel summary { color: #8d382b; }
+
+.archive-panel p {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.archive-panel button {
+  background: #9e3f31;
+  border: 0;
+  border-radius: 9px;
+  color: white;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  justify-self: start;
+  padding: 10px 14px;
+}
+
+.archive-count {
+  background: #e5f1e9;
+  border-radius: 99px;
+  color: var(--green-dark);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 9px 13px;
+}
+
+.archive-grid {
+  display: grid;
+  gap: 20px;
+  margin-top: 36px;
+}
+
+.archive-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) 1fr;
+  overflow: hidden;
+}
+
+.archive-gallery {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.archive-gallery figure {
+  flex: 0 0 100%;
+  margin: 0;
+  scroll-snap-align: start;
+}
+
+.archive-gallery figure > span {
+  aspect-ratio: 4 / 3;
+  display: block;
+  position: relative;
+}
+
+.archive-gallery img { object-fit: cover; }
+
+.archive-gallery figcaption {
+  background: var(--green-dark);
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 9px 12px;
+  text-transform: capitalize;
+}
+
+.archive-card-body {
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+}
+
+.review-badge-static {
+  border-radius: 99px;
+  color: white;
+  font-size: 8px;
+  font-weight: 850;
+  justify-self: start;
+  padding: 7px 10px;
+  text-transform: uppercase;
+}
+
+.archive-card-body h2 { font-size: 22px; margin: 0; }
+.archive-card-body > p { color: var(--green); font-size: 10px; font-weight: 800; margin: 0; text-transform: capitalize; }
+.archive-card-body dl { display: grid; gap: 8px; margin: 0; }
+.archive-card-body dl div { background: #f4f7f4; border-radius: 8px; padding: 9px; }
+.archive-card-body dt { color: var(--muted); font-size: 8px; }
+.archive-card-body dd { font-size: 10px; font-weight: 700; margin: 4px 0 0; }
+.archive-card-body .button { border: 0; }
 
 .public-report-body h3 {
   font-size: 18px;
@@ -1738,6 +1994,10 @@ footer p {
   .public-report-grid {
     grid-template-columns: 1fr 1fr;
   }
+
+  .archive-card {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 520px) {
@@ -1824,6 +2084,14 @@ footer p {
   .public-metrics,
   .public-report-grid {
     grid-template-columns: 1fr;
+  }
+
+  .progress-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-note-field {
+    grid-column: auto;
   }
 
   .admin-title-row,

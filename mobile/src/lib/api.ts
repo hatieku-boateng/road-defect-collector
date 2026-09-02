@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { File } from 'expo-file-system';
 
 import type { DeviceIdentity, LocalReport } from './mobile-data';
 
@@ -51,11 +52,8 @@ export async function submitReport(draft: ReportDraft): Promise<LocalReport> {
   form.append('source', 'manual');
   form.append('privacyProcessed', draft.privacyConfirmed ? 'true' : 'false');
   form.append('privacyBlurCount', '0');
-  form.append('roadImage', {
-    uri: draft.image.uri,
-    name: draft.image.fileName,
-    type: draft.image.mimeType,
-  } as unknown as Blob);
+  const roadImage = new File(draft.image.uri);
+  form.append('roadImage', roadImage, draft.image.fileName);
 
   const response = await fetch(`${API_BASE_URL}/api/submissions`, { method: 'POST', body: form });
   const body = await response.json().catch(() => ({})) as { error?: string; id?: string; status?: string };

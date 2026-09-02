@@ -17,6 +17,9 @@ A mobile-friendly road image collection and quality-review system designed to pr
 - Approve or reject quality-review workflow
 - Administrator-managed maintenance status lifecycle
 - Google Maps directions for verified GPS-backed submissions
+- Public dashboard of non-rejected reports and maintenance progress
+- Public map and directions for verified GPS-backed reports
+- Public-data redaction for collector, device and unverified location details
 - Local drone-video frame extraction
 - Open-source Grounding DINO pothole candidate detection
 - Human selection of AI candidates before upload
@@ -28,6 +31,7 @@ A mobile-friendly road image collection and quality-review system designed to pr
 - `/` — project landing page
 - `/collect` — collector submission form
 - `/drone` — browser-based drone AI analysis
+- `/reports` — public road-defect and maintenance-status dashboard
 - `/admin/login` — administrator sign-in
 - `/admin` — protected review dashboard
 - `/api/health` — deployment configuration check

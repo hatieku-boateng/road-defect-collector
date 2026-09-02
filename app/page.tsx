@@ -55,6 +55,9 @@ export default function Home() {
             <Link className="button secondary" href="/drone">
               Analyse drone footage
             </Link>
+            <Link className="button secondary" href="/reports">
+              View public dashboard
+            </Link>
             <a className="button secondary" href="#process">
               View the workflow
             </a>
@@ -102,7 +105,7 @@ export default function Home() {
 
       <footer>
         <p>Ghana Road Defect Monitoring Project</p>
-        <p>Road image collection module • 2026</p>
+        <p><Link href="/reports">View reported road defects</Link> • 2026</p>
       </footer>
     </main>
   );

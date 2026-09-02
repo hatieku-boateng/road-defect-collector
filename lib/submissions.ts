@@ -36,6 +36,26 @@ export type SubmissionFilters = {
   status?: string;
 };
 
+export type PublicRoadSubmission = Pick<
+  RoadSubmission,
+  | "area_name"
+  | "created_at"
+  | "id"
+  | "latitude"
+  | "longitude"
+  | "source"
+  | "suspected_defect"
+  | "workflow_status"
+>;
+
+const publicLocationStatuses = [
+  "verified",
+  "assigned",
+  "inspection-scheduled",
+  "repair-in-progress",
+  "repair-completed",
+];
+
 export async function listSubmissions(filters: SubmissionFilters = {}) {
   await ensureSchema();
   const sql = getSql();
@@ -71,6 +91,47 @@ export async function getSubmission(id: string) {
   );
 
   return (rows[0] as RoadSubmission | undefined) ?? null;
+}
+
+export async function listPublicSubmissions() {
+  await ensureSchema();
+  const sql = getSql();
+  const rows = await sql.query(
+    `
+      SELECT
+        id,
+        area_name,
+        suspected_defect,
+        created_at,
+        workflow_status,
+        source,
+        CASE WHEN workflow_status = ANY($1::text[]) THEN latitude ELSE NULL END AS latitude,
+        CASE WHEN workflow_status = ANY($1::text[]) THEN longitude ELSE NULL END AS longitude
+      FROM road_submissions
+      WHERE workflow_status <> 'rejected'
+      ORDER BY created_at DESC
+      LIMIT 500
+    `,
+    [publicLocationStatuses],
+  );
+
+  return rows as PublicRoadSubmission[];
+}
+
+export async function getPublicSubmissionImage(id: string) {
+  await ensureSchema();
+  const sql = getSql();
+  const rows = await sql.query(
+    `
+      SELECT image_path, image_type
+      FROM road_submissions
+      WHERE id = $1 AND workflow_status <> 'rejected'
+      LIMIT 1
+    `,
+    [id],
+  );
+
+  return (rows[0] as Pick<RoadSubmission, "image_path" | "image_type"> | undefined) ?? null;
 }
 
 export async function updateSubmissionReview(

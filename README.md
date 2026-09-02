@@ -15,6 +15,8 @@ A mobile-friendly road image collection and quality-review system designed to pr
 - Submission totals and filters
 - OpenStreetMap location overview
 - Approve or reject quality-review workflow
+- Administrator-managed maintenance status lifecycle
+- Google Maps directions for verified GPS-backed submissions
 - Local drone-video frame extraction
 - Open-source Grounding DINO pothole candidate detection
 - Human selection of AI candidates before upload

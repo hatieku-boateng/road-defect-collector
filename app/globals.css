@@ -1262,7 +1262,9 @@ footer p {
   margin-top: 12px;
 }
 
-.metric-approved { border-top: 3px solid #23845f; }
+.metric-verified { border-top: 3px solid #23845f; }
+.metric-active { border-top: 3px solid #3976a8; }
+.metric-completed { border-top: 3px solid #157347; }
 .metric-pending { border-top: 3px solid var(--gold); }
 .metric-rejected { border-top: 3px solid #b44a38; }
 .metric-total { border-top: 3px solid var(--green-dark); }
@@ -1292,6 +1294,7 @@ footer p {
 
 .filter-bar input,
 .filter-bar select,
+.review-form select,
 .review-form textarea {
   background: #fbfcfb;
   border: 1px solid #cad8cf;
@@ -1387,9 +1390,13 @@ footer p {
   top: 14px;
 }
 
-.review-approved { background: #23845f; }
+.review-verified { background: #23845f; }
 .review-pending { background: #d18b18; }
 .review-rejected { background: #b44a38; }
+.review-assigned { background: #3976a8; }
+.review-inspection-scheduled { background: #7966b5; }
+.review-repair-in-progress { background: #287f91; }
+.review-repair-completed { background: #157347; }
 
 .submission-body {
   display: grid;
@@ -1454,6 +1461,26 @@ footer p {
   gap: 10px;
 }
 
+.directions-button {
+  align-items: center;
+  background: #e7f2ea;
+  border: 1px solid #b9d5c3;
+  border-radius: 9px;
+  color: var(--green-dark);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 850;
+  justify-content: center;
+  justify-self: start;
+  min-height: 38px;
+  padding: 9px 14px;
+  text-decoration: none;
+}
+
+.directions-button:hover {
+  background: #d9ecdf;
+}
+
 .review-form textarea {
   min-height: 62px;
   resize: vertical;
@@ -1474,8 +1501,9 @@ footer p {
   padding: 10px 15px;
 }
 
-.review-form button:first-child { background: #23845f; }
-.review-form button:last-child { background: #b44a38; }
+.review-form button { background: var(--green); }
+
+.review-form button:hover { background: var(--green-dark); }
 
 .empty-state {
   background: white;

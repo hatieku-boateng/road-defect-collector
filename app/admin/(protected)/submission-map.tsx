@@ -1,12 +1,20 @@
 "use client";
 
 import { CircleMarker, MapContainer, Popup, TileLayer } from "react-leaflet";
+import {
+  getDirectionsUrl,
+  statusAllowsDirections,
+} from "../../../lib/config";
 import type { RoadSubmission } from "../../../lib/submissions";
 
 const statusColours = {
-  approved: "#23845f",
+  assigned: "#3976a8",
+  "inspection-scheduled": "#7966b5",
   pending: "#d18b18",
   rejected: "#b44a38",
+  "repair-completed": "#157347",
+  "repair-in-progress": "#287f91",
+  verified: "#23845f",
 };
 
 export default function SubmissionMap({
@@ -39,7 +47,7 @@ export default function SubmissionMap({
       {mappedSubmissions.map((submission) => (
         <CircleMarker
           center={[submission.latitude, submission.longitude]}
-          fillColor={statusColours[submission.status]}
+          fillColor={statusColours[submission.workflow_status]}
           fillOpacity={0.85}
           key={submission.id}
           pathOptions={{ color: "#ffffff", weight: 2 }}
@@ -51,6 +59,18 @@ export default function SubmissionMap({
             {submission.suspected_defect.replaceAll("-", " ")}
             <br />
             Collector: {submission.collector_id}
+            {statusAllowsDirections(submission.workflow_status) ? (
+              <>
+                <br />
+                <a
+                  href={getDirectionsUrl(submission.latitude, submission.longitude)}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Show directions
+                </a>
+              </>
+            ) : null}
           </Popup>
         </CircleMarker>
       ))}

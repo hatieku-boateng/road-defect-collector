@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { clearAdminSession, requireAdmin } from "../../lib/admin-auth";
-import { REVIEW_STATUSES, type ReviewStatus } from "../../lib/config";
+import { WORKFLOW_STATUSES, type WorkflowStatus } from "../../lib/config";
 import { updateSubmissionReview } from "../../lib/submissions";
 
 export async function reviewSubmissionAction(formData: FormData) {
@@ -16,11 +16,11 @@ export async function reviewSubmissionAction(formData: FormData) {
     throw new Error("Invalid submission identifier.");
   }
 
-  if (!REVIEW_STATUSES.includes(status as ReviewStatus) || status === "pending") {
-    throw new Error("Invalid review status.");
+  if (!WORKFLOW_STATUSES.includes(status as WorkflowStatus)) {
+    throw new Error("Invalid submission status.");
   }
 
-  await updateSubmissionReview(id, status as ReviewStatus, note);
+  await updateSubmissionReview(id, status as WorkflowStatus, note);
   revalidatePath("/admin");
 }
 

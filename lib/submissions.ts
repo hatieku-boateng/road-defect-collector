@@ -1,4 +1,4 @@
-import type { DefectType, ReviewStatus } from "./config";
+import type { DefectType, WorkflowStatus } from "./config";
 import { ensureSchema, getSql } from "./db";
 
 export type RoadSubmission = {
@@ -22,10 +22,11 @@ export type RoadSubmission = {
   privacy_processed: boolean;
   review_note: string | null;
   reviewed_at: string | null;
-  status: ReviewStatus;
+  status: "approved" | "pending" | "rejected";
   source: "drone-ai" | "manual";
   suspected_defect: DefectType;
   video_timestamp: number | null;
+  workflow_status: WorkflowStatus;
 };
 
 export type SubmissionFilters = {
@@ -43,7 +44,7 @@ export async function listSubmissions(filters: SubmissionFilters = {}) {
     `
       SELECT *
       FROM road_submissions
-      WHERE ($1::text = '' OR status = $1)
+      WHERE ($1::text = '' OR workflow_status = $1)
         AND ($2::text = '' OR suspected_defect = $2)
         AND ($3::text = '' OR collector_id ILIKE '%' || $3 || '%')
         AND ($4::text = '' OR source = $4)
@@ -74,7 +75,7 @@ export async function getSubmission(id: string) {
 
 export async function updateSubmissionReview(
   id: string,
-  status: ReviewStatus,
+  status: WorkflowStatus,
   note: string,
 ) {
   await ensureSchema();
@@ -83,7 +84,14 @@ export async function updateSubmissionReview(
   await sql.query(
     `
       UPDATE road_submissions
-      SET status = $2, review_note = NULLIF($3, ''), reviewed_at = NOW()
+      SET workflow_status = $2,
+          status = CASE
+            WHEN $2 = 'pending' THEN 'pending'
+            WHEN $2 = 'rejected' THEN 'rejected'
+            ELSE 'approved'
+          END,
+          review_note = NULLIF($3, ''),
+          reviewed_at = NOW()
       WHERE id = $1
     `,
     [id, status, note],

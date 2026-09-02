@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { DEFECT_TYPES, REVIEW_STATUSES } from "../../../lib/config";
+import {
+  DEFECT_TYPES,
+  getDirectionsUrl,
+  statusAllowsDirections,
+  WORKFLOW_STATUSES,
+  WORKFLOW_STATUS_LABELS,
+} from "../../../lib/config";
 import {
   listSubmissions,
   type RoadSubmission,
@@ -52,10 +58,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const summary = submissions.reduce(
     (totals, submission) => {
       totals.total += 1;
-      totals[submission.status] += 1;
+      if (submission.workflow_status === "pending") totals.pending += 1;
+      else if (submission.workflow_status === "verified") totals.verified += 1;
+      else if (submission.workflow_status === "rejected") totals.rejected += 1;
+      else if (submission.workflow_status === "repair-completed") totals.completed += 1;
+      else totals.active += 1;
       return totals;
     },
-    { approved: 0, pending: 0, rejected: 0, total: 0 },
+    { active: 0, completed: 0, pending: 0, rejected: 0, total: 0, verified: 0 },
   );
 
   return (
@@ -103,8 +113,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <span>Status</span>
             <select defaultValue={filters.status} name="status">
               <option value="">All statuses</option>
-              {REVIEW_STATUSES.map((status) => (
-                <option key={status} value={status}>{status}</option>
+              {WORKFLOW_STATUSES.map((status) => (
+                <option key={status} value={status}>{WORKFLOW_STATUS_LABELS[status]}</option>
               ))}
             </select>
           </label>
@@ -163,8 +173,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     src={`/api/images/${submission.id}`}
                     unoptimized
                   />
-                  <span className={`review-badge review-${submission.status}`}>
-                    {submission.status}
+                  <span className={`review-badge review-${submission.workflow_status}`}>
+                    {WORKFLOW_STATUS_LABELS[submission.workflow_status]}
                   </span>
                 </div>
                 <div className="submission-body">
@@ -199,8 +209,29 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       </>
                     )}
                   </dl>
+                  {submission.latitude !== null && submission.longitude !== null &&
+                  statusAllowsDirections(submission.workflow_status) ? (
+                    <a
+                      className="directions-button"
+                      href={getDirectionsUrl(submission.latitude, submission.longitude)}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Show directions
+                    </a>
+                  ) : null}
                   <form action={reviewSubmissionAction} className="review-form">
                     <input name="id" type="hidden" value={submission.id} />
+                    <label>
+                      <span>Submission status</span>
+                      <select defaultValue={submission.workflow_status} name="status">
+                        {WORKFLOW_STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {WORKFLOW_STATUS_LABELS[status]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                     <label>
                       <span>Review note</span>
                       <textarea
@@ -212,8 +243,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       />
                     </label>
                     <div>
-                      <button name="status" type="submit" value="approved">Approve</button>
-                      <button name="status" type="submit" value="rejected">Reject</button>
+                      <button type="submit">Update status</button>
                     </div>
                   </form>
                 </div>

@@ -32,6 +32,7 @@ export async function ensureSchema() {
           image_type VARCHAR(80) NOT NULL,
           image_size INTEGER NOT NULL,
           status VARCHAR(20) NOT NULL DEFAULT 'pending',
+          workflow_status VARCHAR(30) NOT NULL DEFAULT 'pending',
           review_note TEXT,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           reviewed_at TIMESTAMPTZ,
@@ -61,7 +62,26 @@ export async function ensureSchema() {
         ADD COLUMN IF NOT EXISTS privacy_blur_count INTEGER NOT NULL DEFAULT 0,
         ADD COLUMN IF NOT EXISTS device_manufacturer VARCHAR(80),
         ADD COLUMN IF NOT EXISTS device_model VARCHAR(80),
-        ADD COLUMN IF NOT EXISTS image_sha256 CHAR(64)
+        ADD COLUMN IF NOT EXISTS image_sha256 CHAR(64),
+        ADD COLUMN IF NOT EXISTS workflow_status VARCHAR(30)
+      `;
+
+      await sql`
+        UPDATE road_submissions
+        SET workflow_status = CASE
+          WHEN status = 'approved' THEN 'verified'
+          WHEN status = 'rejected' THEN 'rejected'
+          ELSE 'pending'
+        END
+        WHERE workflow_status IS NULL
+      `;
+      await sql`
+        ALTER TABLE road_submissions
+        ALTER COLUMN workflow_status SET DEFAULT 'pending'
+      `;
+      await sql`
+        ALTER TABLE road_submissions
+        ALTER COLUMN workflow_status SET NOT NULL
       `;
 
       await sql`ALTER TABLE road_submissions ALTER COLUMN latitude DROP NOT NULL`;
@@ -74,8 +94,8 @@ export async function ensureSchema() {
         ON road_submissions (created_at DESC)
       `;
       await sql`
-        CREATE INDEX IF NOT EXISTS road_submissions_status_idx
-        ON road_submissions (status)
+        CREATE INDEX IF NOT EXISTS road_submissions_workflow_status_idx
+        ON road_submissions (workflow_status)
       `;
       await sql`
         CREATE INDEX IF NOT EXISTS road_submissions_collector_idx

@@ -49,7 +49,8 @@ export default async function CollectPage({ searchParams }: CollectPageProps) {
             <span aria-hidden="true">1</span>
             <p>
               <strong>One record at a time</strong>
-              Use this form for a single image and its collection details.
+              Submit one image per record. Different road defects of the same
+              type may be submitted from the same surrounding area.
             </p>
           </div>
         </div>

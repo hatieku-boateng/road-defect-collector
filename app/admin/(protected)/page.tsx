@@ -178,6 +178,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <dl className="submission-meta">
                     <div><dt>Collector</dt><dd>{submission.collector_id}</dd></div>
                     <div><dt>Source</dt><dd>{submission.source === "drone-ai" ? "Drone AI" : "Manual photo"}</dd></div>
+                    <div>
+                      <dt>Privacy</dt>
+                      <dd>
+                        {submission.privacy_processed
+                          ? `${submission.privacy_blur_count} region${submission.privacy_blur_count === 1 ? "" : "s"} blurred`
+                          : "Legacy record"}
+                      </dd>
+                    </div>
                     {submission.source === "drone-ai" ? (
                       <>
                         <div><dt>Video time</dt><dd>{submission.video_timestamp?.toFixed(1)} s</dd></div>

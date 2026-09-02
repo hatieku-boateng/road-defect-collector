@@ -47,10 +47,24 @@ export async function POST(request: Request) {
   const source = getText(formData, "source") || "manual";
   const videoTimestamp = getNumber(formData, "videoTimestamp");
   const aiConfidence = getNumber(formData, "aiConfidence");
+  const privacyProcessed = getText(formData, "privacyProcessed") === "true";
+  const privacyBlurCount = getNumber(formData, "privacyBlurCount");
   const image = formData.get("roadImage");
 
   if (source !== "manual" && source !== "drone-ai") {
     return NextResponse.json({ error: "Select a valid submission source." }, { status: 400 });
+  }
+
+  if (
+    !privacyProcessed ||
+    privacyBlurCount === null ||
+    privacyBlurCount < 0 ||
+    !Number.isInteger(privacyBlurCount)
+  ) {
+    return NextResponse.json(
+      { error: "Complete the privacy check before submitting this image." },
+      { status: 400 },
+    );
   }
 
   if (!/^[a-z0-9][a-z0-9_-]{2,49}$/i.test(collectorId)) {
@@ -149,10 +163,11 @@ export async function POST(request: Request) {
           id, collector_id, area_name, suspected_defect,
           latitude, longitude, gps_accuracy, gps_timestamp,
           image_path, image_name, image_type, image_size,
-          source, video_timestamp, ai_confidence
+          source, video_timestamp, ai_confidence,
+          privacy_processed, privacy_blur_count
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::timestamptz,
-          $9, $10, $11, $12, $13, $14, $15)
+          $9, $10, $11, $12, $13, $14, $15, $16, $17)
       `,
       [
         id,
@@ -170,6 +185,8 @@ export async function POST(request: Request) {
         source,
         videoTimestamp,
         aiConfidence,
+        privacyProcessed,
+        privacyBlurCount,
       ],
     );
 

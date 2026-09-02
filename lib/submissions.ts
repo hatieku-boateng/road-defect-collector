@@ -15,6 +15,8 @@ export type RoadSubmission = {
   image_type: string;
   latitude: number | null;
   longitude: number | null;
+  privacy_blur_count: number;
+  privacy_processed: boolean;
   review_note: string | null;
   reviewed_at: string | null;
   status: ReviewStatus;

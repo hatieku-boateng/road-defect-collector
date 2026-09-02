@@ -5,34 +5,73 @@ import {
 
 env.allowLocalModels = false;
 
-let detectorPromise;
+const SENSITIVE_LABELS = new Set([
+  "person",
+  "bicycle",
+  "car",
+  "motorcycle",
+  "bus",
+  "truck",
+]);
 
-function getDetector() {
-  if (!detectorPromise) {
-    detectorPromise = pipeline(
+let potholeDetectorPromise;
+let privacyDetectorPromise;
+
+function getPotholeDetector() {
+  if (!potholeDetectorPromise) {
+    potholeDetectorPromise = pipeline(
       "zero-shot-object-detection",
       "onnx-community/grounding-dino-tiny-ONNX",
       {
         dtype: "q8",
         progress_callback: (progress) => {
-          self.postMessage({ kind: "progress", progress });
+          self.postMessage({ kind: "progress", model: "pothole", progress });
         },
       },
     );
   }
 
-  return detectorPromise;
+  return potholeDetectorPromise;
+}
+
+function getPrivacyDetector() {
+  if (!privacyDetectorPromise) {
+    privacyDetectorPromise = pipeline(
+      "object-detection",
+      "Xenova/yolos-tiny",
+      {
+        dtype: "q8",
+        progress_callback: (progress) => {
+          self.postMessage({ kind: "progress", model: "privacy", progress });
+        },
+      },
+    );
+  }
+
+  return privacyDetectorPromise;
 }
 
 self.onmessage = async (event) => {
-  const { id, image } = event.data;
+  const { id, image, task } = event.data;
 
   try {
-    const detector = await getDetector();
+    if (task === "privacy") {
+      const detector = await getPrivacyDetector();
+      const output = await detector(image, { threshold: 0.62 });
+      self.postMessage({
+        id,
+        kind: "result",
+        output: output.filter((item) => SENSITIVE_LABELS.has(item.label)),
+      });
+      return;
+    }
+
+    const detector = await getPotholeDetector();
     const output = await detector(image, ["a pothole."], { threshold: 0.22 });
     self.postMessage({ id, kind: "result", output });
   } catch (error) {
-    detectorPromise = undefined;
+    if (task === "privacy") privacyDetectorPromise = undefined;
+    else potholeDetectorPromise = undefined;
     self.postMessage({
       id,
       kind: "error",

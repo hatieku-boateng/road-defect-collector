@@ -44,7 +44,8 @@ export default function Home() {
           <p className="intro">
             Collectors can take GPS-backed road photographs, while reviewers can
             use open-source AI to find pothole candidates in drone footage. Every
-            record still passes through human verification.
+            record still passes through human verification, with detected people
+            and vehicles blurred before storage.
           </p>
 
           <div className="hero-actions">

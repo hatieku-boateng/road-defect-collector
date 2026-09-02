@@ -17,6 +17,7 @@ A mobile-friendly road image collection and quality-review system designed to pr
 - Local drone-video frame extraction
 - Open-source Grounding DINO pothole candidate detection
 - Human selection of AI candidates before upload
+- Local detection and blurring of people and road vehicles before storage
 
 ## Application routes
 
@@ -51,6 +52,14 @@ queue with a pending status.
 The model is downloaded from Hugging Face on first use and cached by the browser.
 This pilot searches only for potholes and must not be treated as a final trained
 road-defect model.
+
+## Privacy protection
+
+Before a manual image is uploaded, the browser runs the open-source YOLOS Tiny
+COCO detector and strongly blurs detected people, cars, buses, trucks,
+motorcycles, and bicycles. The same privacy pass runs on drone candidate frames.
+Only the processed image is submitted. If the privacy detector cannot complete,
+the normal interface blocks the upload rather than storing the unprocessed image.
 
 ## Local development
 

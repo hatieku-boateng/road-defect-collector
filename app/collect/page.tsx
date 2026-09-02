@@ -40,7 +40,8 @@ export default async function CollectPage({ searchParams }: CollectPageProps) {
           <h1>Submit a road image.</h1>
           <p>
             Capture or upload one clear road image, attach its precise GPS
-            location, and submit the record securely for quality review.
+            location, and submit it securely. People and vehicles are detected
+            and blurred on the device before the image is uploaded.
           </p>
 
           <div className="form-note">

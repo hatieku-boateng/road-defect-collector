@@ -1,22 +1,25 @@
 "use client";
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
+import {
+  blurSensitiveRegions,
+  type ImageDetection,
+} from "../../lib/privacy-image";
 
-type Box = { xmax: number; xmin: number; ymax: number; ymin: number };
-type Detection = { box: Box; label: string; score: number };
 type Candidate = {
-  detections: Detection[];
+  detections: ImageDetection[];
   id: string;
   image: string;
   imageHeight: number;
   imageWidth: number;
+  privacyCount: number;
   saved: boolean;
   selected: boolean;
   time: number;
 };
 type PendingRequest = {
   reject: (reason: Error) => void;
-  resolve: (value: Detection[]) => void;
+  resolve: (value: ImageDetection[]) => void;
 };
 
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024;
@@ -91,14 +94,16 @@ export default function DroneAnalyzer() {
       if (message.kind === "progress") {
         const percent = Number(message.progress?.progress ?? 0);
         const suffix = Number.isFinite(percent) && percent > 0 ? ` ${Math.round(percent)}%` : "";
-        setStatus(`Loading the open-source AI model…${suffix}`);
+        setStatus(message.model === "privacy"
+          ? `Loading the privacy detector…${suffix}`
+          : `Loading the pothole detector…${suffix}`);
         return;
       }
       const pending = requestsRef.current.get(message.id);
       if (!pending) return;
       requestsRef.current.delete(message.id);
       if (message.kind === "error") pending.reject(new Error(message.message));
-      else pending.resolve(message.output as Detection[]);
+      else pending.resolve(message.output as ImageDetection[]);
     };
     worker.onerror = () => {
       const error = new Error("The AI model could not start in this browser.");
@@ -112,11 +117,11 @@ export default function DroneAnalyzer() {
     return worker;
   }
 
-  function detect(image: string) {
-    return new Promise<Detection[]>((resolve, reject) => {
+  function detect(image: string, task: "pothole" | "privacy") {
+    return new Promise<ImageDetection[]>((resolve, reject) => {
       const id = crypto.randomUUID();
       requestsRef.current.set(id, { reject, resolve });
-      getWorker().postMessage({ id, image });
+      getWorker().postMessage({ id, image, task });
     });
   }
 
@@ -170,14 +175,18 @@ export default function DroneAnalyzer() {
       for (let index = 0; index < times.length; index += 1) {
         setStatus(`Extracting and analysing frame ${index + 1} of ${times.length}…`);
         const frame = await frameAt(video, canvas, times[index]);
-        const detections = await detect(frame.image);
+        const detections = await detect(frame.image, "pothole");
         if (detections.length > 0) {
+          setStatus(`Applying privacy protection to candidate ${found.length + 1}…`);
+          const sensitiveObjects = await detect(frame.image, "privacy");
+          const privacySafeFrame = await blurSensitiveRegions(frame.image, sensitiveObjects);
           found.push({
             detections,
             id: crypto.randomUUID(),
-            image: frame.image,
+            image: privacySafeFrame.dataUrl,
             imageHeight: frame.height,
             imageWidth: frame.width,
+            privacyCount: sensitiveObjects.length,
             saved: false,
             selected: true,
             time: times[index],
@@ -232,6 +241,8 @@ export default function DroneAnalyzer() {
         formData.set("source", "drone-ai");
         formData.set("videoTimestamp", String(candidate.time));
         formData.set("aiConfidence", String(bestConfidence));
+        formData.set("privacyProcessed", "true");
+        formData.set("privacyBlurCount", String(candidate.privacyCount));
         formData.set("roadImage", imageBlob, `drone-frame-${candidate.time.toFixed(1)}.jpg`);
 
         const response = await fetch("/api/submissions", { body: formData, method: "POST" });
@@ -310,7 +321,9 @@ export default function DroneAnalyzer() {
                 </span>
                 <span className="candidate-details">
                   <strong>{candidate.saved ? "Submitted" : candidate.selected ? "Selected" : "Not selected"}</strong>
-                  <small>{formatTime(candidate.time)} • Best confidence {Math.round(Math.max(...candidate.detections.map((item) => item.score)) * 100)}%</small>
+                  <small>
+                    {formatTime(candidate.time)} • Confidence {Math.round(Math.max(...candidate.detections.map((item) => item.score)) * 100)}% • {candidate.privacyCount} blurred
+                  </small>
                 </span>
               </button>
             ))}

@@ -28,7 +28,8 @@ export default function DronePage() {
           <p>
             The video remains on this device. Selected frames are analysed by an
             open-source model, and only candidates you approve are submitted for
-            administrator review.
+            administrator review. People and vehicles in candidate frames are
+            blurred before upload.
           </p>
           <div className="ai-caution">
             <strong>Human verification is mandatory.</strong>

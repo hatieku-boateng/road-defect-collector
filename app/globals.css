@@ -824,6 +824,16 @@ footer p {
   min-height: 14px;
 }
 
+.privacy-status {
+  background: #e7f2ea;
+  border-radius: 9px;
+  color: var(--green-dark);
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 10px 12px;
+}
+
 .location-field {
   align-items: center;
   background: #f4f7f4;

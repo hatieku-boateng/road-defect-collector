@@ -11,6 +11,7 @@ type ReviewData = {
   gpsAccuracy: string;
   latitude: string;
   longitude: string;
+  privacyBlurCount: string;
 };
 
 function readForm(form: HTMLFormElement) {
@@ -27,6 +28,7 @@ function readForm(form: HTMLFormElement) {
       gpsAccuracy: String(formData.get("gpsAccuracy") ?? ""),
       latitude: String(formData.get("latitude") ?? ""),
       longitude: String(formData.get("longitude") ?? ""),
+      privacyBlurCount: String(formData.get("privacyBlurCount") ?? "0"),
     },
   };
 }
@@ -47,7 +49,11 @@ export default function SubmissionControls() {
       return;
     }
 
-    const { review: reviewData } = readForm(form);
+    const { formData, review: reviewData } = readForm(form);
+    if (String(formData.get("privacyProcessed") ?? "") !== "true") {
+      setError("Wait for the privacy check to finish before reviewing this record.");
+      return;
+    }
     if (!reviewData.latitude || !reviewData.longitude || !reviewData.gpsAccuracy) {
       setError("Capture the GPS location before reviewing this record.");
       return;
@@ -112,6 +118,7 @@ export default function SubmissionControls() {
               <div><dt>Latitude</dt><dd>{Number(review.latitude).toFixed(6)}</dd></div>
               <div><dt>Longitude</dt><dd>{Number(review.longitude).toFixed(6)}</dd></div>
               <div><dt>GPS accuracy</dt><dd>±{Math.round(Number(review.gpsAccuracy))} metres</dd></div>
+              <div><dt>Privacy protection</dt><dd>{review.privacyBlurCount} region{review.privacyBlurCount === "1" ? "" : "s"} blurred</dd></div>
             </dl>
             <p>
               The suspected defect is provisional. An administrator will verify the image later.

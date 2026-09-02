@@ -4,8 +4,9 @@ A mobile-friendly road image collection and quality-review system designed to pr
 
 ## Features
 
-- Collector ID and road-area capture
-- Manual camera capture or road image upload
+- Persistent 12-digit collector ID generated automatically per browser/device
+- Device manufacturer and model metadata when the browser makes it available
+- Separate mobile camera capture and existing-photo upload actions
 - Device GPS capture with accuracy and timestamp
 - Final record review before submission
 - Private image storage with Vercel Blob

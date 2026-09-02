@@ -7,6 +7,8 @@ type ReviewData = {
   areaName: string;
   collectorId: string;
   defect: string;
+  deviceManufacturer: string;
+  deviceModel: string;
   fileName: string;
   gpsAccuracy: string;
   latitude: string;
@@ -24,6 +26,8 @@ function readForm(form: HTMLFormElement) {
       areaName: String(formData.get("areaName") ?? ""),
       collectorId: String(formData.get("collectorId") ?? ""),
       defect: String(formData.get("suspectedDefect") ?? "").replaceAll("-", " "),
+      deviceManufacturer: String(formData.get("deviceManufacturer") ?? ""),
+      deviceModel: String(formData.get("deviceModel") ?? ""),
       fileName: image instanceof File ? image.name : "",
       gpsAccuracy: String(formData.get("gpsAccuracy") ?? ""),
       latitude: String(formData.get("latitude") ?? ""),
@@ -112,6 +116,7 @@ export default function SubmissionControls() {
             </div>
             <dl>
               <div><dt>Collector</dt><dd>{review.collectorId}</dd></div>
+              <div><dt>Device</dt><dd>{review.deviceManufacturer} • {review.deviceModel}</dd></div>
               <div><dt>Area</dt><dd>{review.areaName}</dd></div>
               <div><dt>Suspected defect</dt><dd>{review.defect}</dd></div>
               <div><dt>Image</dt><dd>{review.fileName}</dd></div>

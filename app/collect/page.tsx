@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import DeviceIdentityField from "./device-identity";
 import ImagePicker from "./image-picker";
 import LocationCapture from "./location-capture";
 import SubmissionControls from "./submission-controls";
@@ -68,10 +69,7 @@ export default async function CollectPage({ searchParams }: CollectPageProps) {
             <span>Live collection</span>
           </div>
 
-          <label className="field">
-            <span>Collector ID</span>
-            <input name="collectorId" placeholder="e.g. COL-001" required />
-          </label>
+          <DeviceIdentityField />
 
           <ImagePicker />
 

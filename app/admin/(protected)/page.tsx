@@ -193,6 +193,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       </>
                     ) : (
                       <>
+                        <div><dt>Device</dt><dd>{submission.device_manufacturer ?? "Unavailable"} • {submission.device_model ?? "Unavailable"}</dd></div>
                         <div><dt>GPS accuracy</dt><dd>±{Math.round(submission.gps_accuracy ?? 0)} m</dd></div>
                         <div><dt>Coordinates</dt><dd>{submission.latitude?.toFixed(5)}, {submission.longitude?.toFixed(5)}</dd></div>
                       </>

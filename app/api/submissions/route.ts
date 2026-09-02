@@ -38,6 +38,8 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const collectorId = getText(formData, "collectorId");
+  const deviceManufacturer = getText(formData, "deviceManufacturer");
+  const deviceModel = getText(formData, "deviceModel");
   const areaName = getText(formData, "areaName");
   const suspectedDefect = getText(formData, "suspectedDefect");
   const latitude = getNumber(formData, "latitude");
@@ -67,9 +69,26 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!/^[a-z0-9][a-z0-9_-]{2,49}$/i.test(collectorId)) {
+  if (source === "manual" && !/^\d{12}$/.test(collectorId)) {
     return NextResponse.json(
-      { error: "Collector ID must contain 3–50 letters, numbers, hyphens or underscores." },
+      { error: "The device collector ID is invalid. Reload the collection form and try again." },
+      { status: 400 },
+    );
+  }
+
+  if (source === "drone-ai" && !/^[a-z0-9][a-z0-9_-]{2,49}$/i.test(collectorId)) {
+    return NextResponse.json(
+      { error: "Operator ID must contain 3–50 letters, numbers, hyphens or underscores." },
+      { status: 400 },
+    );
+  }
+
+  if (
+    source === "manual" &&
+    (!deviceManufacturer || deviceManufacturer.length > 80 || !deviceModel || deviceModel.length > 80)
+  ) {
+    return NextResponse.json(
+      { error: "The device information is invalid. Reload the collection form and try again." },
       { status: 400 },
     );
   }
@@ -164,10 +183,12 @@ export async function POST(request: Request) {
           latitude, longitude, gps_accuracy, gps_timestamp,
           image_path, image_name, image_type, image_size,
           source, video_timestamp, ai_confidence,
-          privacy_processed, privacy_blur_count
+          privacy_processed, privacy_blur_count,
+          device_manufacturer, device_model
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::timestamptz,
-          $9, $10, $11, $12, $13, $14, $15, $16, $17)
+          $9, $10, $11, $12, $13, $14, $15, $16, $17,
+          NULLIF($18, ''), NULLIF($19, ''))
       `,
       [
         id,
@@ -187,6 +208,8 @@ export async function POST(request: Request) {
         aiConfidence,
         privacyProcessed,
         privacyBlurCount,
+        deviceManufacturer,
+        deviceModel,
       ],
     );
 

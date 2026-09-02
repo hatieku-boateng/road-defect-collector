@@ -40,6 +40,8 @@ export async function ensureSchema() {
           ai_confidence DOUBLE PRECISION,
           privacy_processed BOOLEAN NOT NULL DEFAULT FALSE,
           privacy_blur_count INTEGER NOT NULL DEFAULT 0,
+          device_manufacturer VARCHAR(80),
+          device_model VARCHAR(80),
           CONSTRAINT road_submissions_status_check
             CHECK (status IN ('pending', 'approved', 'rejected')),
           CONSTRAINT road_submissions_defect_check
@@ -55,7 +57,9 @@ export async function ensureSchema() {
         ADD COLUMN IF NOT EXISTS video_timestamp DOUBLE PRECISION,
         ADD COLUMN IF NOT EXISTS ai_confidence DOUBLE PRECISION,
         ADD COLUMN IF NOT EXISTS privacy_processed BOOLEAN NOT NULL DEFAULT FALSE,
-        ADD COLUMN IF NOT EXISTS privacy_blur_count INTEGER NOT NULL DEFAULT 0
+        ADD COLUMN IF NOT EXISTS privacy_blur_count INTEGER NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS device_manufacturer VARCHAR(80),
+        ADD COLUMN IF NOT EXISTS device_model VARCHAR(80)
       `;
 
       await sql`ALTER TABLE road_submissions ALTER COLUMN latitude DROP NOT NULL`;

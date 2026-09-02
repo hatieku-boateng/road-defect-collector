@@ -36,7 +36,9 @@ function formatFileSize(bytes: number) {
 }
 
 export default function ImagePicker() {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const processedInputRef = useRef<HTMLInputElement>(null);
   const workerRef = useRef<Worker | null>(null);
   const requestsRef = useRef(new Map<string, PendingRequest>());
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -134,7 +136,7 @@ export default function ImagePicker() {
       });
       const transfer = new DataTransfer();
       transfer.items.add(safeFile);
-      if (inputRef.current) inputRef.current.files = transfer.files;
+      if (processedInputRef.current) processedInputRef.current.files = transfer.files;
 
       setPreview({
         name: safeFile.name,
@@ -158,9 +160,9 @@ export default function ImagePicker() {
   }
 
   function clearImage() {
-    if (inputRef.current) {
-      inputRef.current.value = "";
-    }
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (uploadInputRef.current) uploadInputRef.current.value = "";
+    if (processedInputRef.current) processedInputRef.current.value = "";
 
     setPreview(null);
     setError(null);
@@ -169,22 +171,59 @@ export default function ImagePicker() {
 
   return (
     <div className="field image-field">
-      <label htmlFor="road-image">Road image</label>
+      <label>Road image</label>
+      <div className="image-source-actions">
+        <button
+          disabled={isProcessing}
+          onClick={() => cameraInputRef.current?.click()}
+          type="button"
+        >
+          <span aria-hidden="true">◎</span>
+          Take a photo
+        </button>
+        <button
+          disabled={isProcessing}
+          onClick={() => uploadInputRef.current?.click()}
+          type="button"
+        >
+          <span aria-hidden="true">↑</span>
+          Choose existing photo
+        </button>
+      </div>
       <input
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/*"
+        aria-label="Take a road photo with this device"
         aria-describedby="road-image-guidance road-image-error"
         aria-invalid={Boolean(error)}
         capture="environment"
         disabled={isProcessing}
-        id="road-image"
-        name="roadImage"
         onChange={handleImageChange}
-        ref={inputRef}
-        required
+        ref={cameraInputRef}
         type="file"
+        hidden
+      />
+      <input
+        accept="image/jpeg,image/png,image/webp"
+        aria-label="Choose an existing road photo"
+        aria-describedby="road-image-guidance road-image-error"
+        aria-invalid={Boolean(error)}
+        disabled={isProcessing}
+        onChange={handleImageChange}
+        ref={uploadInputRef}
+        type="file"
+        hidden
+      />
+      <input
+        aria-hidden="true"
+        name="roadImage"
+        ref={processedInputRef}
+        tabIndex={-1}
+        type="file"
+        hidden
       />
       <small id="road-image-guidance">
-        JPG, PNG, or WebP, up to 10 MB. People and vehicles are blurred locally before upload.
+        Use the rear camera on a phone or tablet, or choose a JPG, PNG, or WebP image up to 10 MB.
+        People and vehicles are blurred locally before upload.
       </small>
 
       <input name="privacyProcessed" type="hidden" value={preview ? "true" : ""} />

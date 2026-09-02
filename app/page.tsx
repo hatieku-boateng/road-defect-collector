@@ -58,9 +58,6 @@ export default function Home() {
             <a className="button secondary" href="#process">
               View the workflow
             </a>
-            <Link className="text-button" href="/admin/login">
-              Administrator sign in
-            </Link>
           </div>
         </div>
 

@@ -5,6 +5,8 @@ export type RoadSubmission = {
   area_name: string;
   collector_id: string;
   created_at: string;
+  device_manufacturer: string | null;
+  device_model: string | null;
   ai_confidence: number | null;
   gps_accuracy: number | null;
   gps_timestamp: string | null;

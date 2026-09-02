@@ -13,7 +13,7 @@ import {
   type RoadSubmission,
   type SubmissionFilters,
 } from "../../../lib/submissions";
-import { logoutAction, reviewSubmissionAction } from "../actions";
+import { logoutAction } from "../actions";
 import MapShell from "./map-shell";
 
 export const metadata: Metadata = { title: "Administrator dashboard" };
@@ -39,6 +39,7 @@ function formatDate(value: string) {
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const params = await searchParams;
+  const updateResult = getFilter(params.update);
   const filters: SubmissionFilters = {
     collector: getFilter(params.collector),
     defect: getFilter(params.defect),
@@ -97,6 +98,17 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
         {configurationError ? (
           <p className="configuration-alert">{configurationError}</p>
+        ) : null}
+
+        {updateResult === "success" ? (
+          <p className="status-update-message status-update-success" role="status">
+            Submission status updated successfully.
+          </p>
+        ) : null}
+        {updateResult === "failed" ? (
+          <p className="status-update-message status-update-failed" role="alert">
+            The status could not be updated. Please reload and try again.
+          </p>
         ) : null}
 
         <div className="metric-grid">
@@ -220,7 +232,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       Show directions
                     </a>
                   ) : null}
-                  <form action={reviewSubmissionAction} className="review-form">
+                  <form action="/api/admin/submissions/status" className="review-form" method="post">
                     <input name="id" type="hidden" value={submission.id} />
                     <label>
                       <span>Submission status</span>

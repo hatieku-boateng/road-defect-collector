@@ -1008,6 +1008,24 @@ footer p {
   padding: 13px 15px;
 }
 
+.status-update-message {
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 750;
+  margin: 22px 0;
+  padding: 12px 14px;
+}
+
+.status-update-success {
+  background: #e7f2ea;
+  color: #14543c;
+}
+
+.status-update-failed {
+  background: #fae9e6;
+  color: #8c3427;
+}
+
 .submission-success strong,
 .submission-success span {
   display: block;

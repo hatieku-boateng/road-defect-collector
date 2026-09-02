@@ -18,6 +18,7 @@ import {
 import ImagePicker from "../../collect/image-picker";
 import { logoutAction } from "../actions";
 import MapShell from "./map-shell";
+import PrivacyRecheck from "./privacy-recheck";
 
 export const metadata: Metadata = { title: "Administrator dashboard" };
 
@@ -257,6 +258,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       </>
                     )}
                   </dl>
+                  <PrivacyRecheck submissionId={submission.id} />
                   {(progressBySubmission.get(submission.id)?.length ?? 0) > 0 ? (
                     <div className="admin-progress-gallery">
                       <h4>Repair progress</h4>

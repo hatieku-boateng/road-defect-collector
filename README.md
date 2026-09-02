@@ -22,13 +22,15 @@ A mobile-friendly road image collection and quality-review system designed to pr
 - Approve or reject quality-review workflow
 - Administrator-managed maintenance status lifecycle
 - Google Maps directions for verified GPS-backed submissions
-- Public dashboard of non-rejected reports and maintenance progress
+- Public dashboard of verified/active reports and maintenance progress; pending reports remain private
 - Public map and directions for verified GPS-backed reports
 - Public-data redaction for collector, device and unverified location details
 - Recoverable administrator archive with submission restore
 - Privacy-processed repair progress photos organised as before, in-progress and after
 - Publicly scrollable road-repair image timelines
-- Native Android and iOS collector with camera, gallery, GPS, device identity, local report receipts, and an in-app public dashboard
+- Native Android and iOS collector with camera, gallery, GPS, secure device identity, offline auto-sync, push-ready report updates, and private report history
+- Swipeable before, in-progress and after galleries on the mobile public dashboard and My Reports
+- Administrator privacy re-check for people, faces, vehicles, plates and shop/storefront signs
 - Safe offline fallback that excludes admin and private API responses
 - Local drone-video frame extraction
 - Open-source Grounding DINO pothole candidate detection

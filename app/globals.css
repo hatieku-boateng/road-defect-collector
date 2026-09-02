@@ -1709,6 +1709,18 @@ footer p {
 .admin-progress-gallery figcaption strong { font-size: 9px; }
 .admin-progress-gallery figcaption span { color: var(--muted); font-size: 8px; }
 
+.admin-privacy-recheck {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.admin-privacy-recheck small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .progress-upload-panel,
 .archive-panel {
   border: 1px solid var(--line);

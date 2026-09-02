@@ -7,6 +7,7 @@ import {
   storageIsConfigured,
 } from "../../../lib/config";
 import { ensureSchema, getSql } from "../../../lib/db";
+import { hashDeviceToken, validateMobileCredentials } from "../../../lib/mobile-auth";
 
 function getText(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const collectorId = getText(formData, "collectorId");
+  const collectorToken = getText(formData, "collectorToken");
   const deviceManufacturer = getText(formData, "deviceManufacturer");
   const deviceModel = getText(formData, "deviceModel");
   const areaName = getText(formData, "areaName");
@@ -88,6 +90,10 @@ export async function POST(request: Request) {
       { error: "The device collector ID is invalid. Reload the collection form and try again." },
       { status: 400 },
     );
+  }
+
+  if (collectorToken && !validateMobileCredentials(collectorId, collectorToken)) {
+    return NextResponse.json({ error: "The mobile collector credentials are invalid." }, { status: 400 });
   }
 
   if (source === "drone-ai" && !/^[a-z0-9][a-z0-9_-]{2,49}$/i.test(collectorId)) {
@@ -215,11 +221,11 @@ export async function POST(request: Request) {
           image_path, image_name, image_type, image_size,
           source, video_timestamp, ai_confidence,
           privacy_processed, privacy_blur_count,
-          device_manufacturer, device_model, image_sha256
+          device_manufacturer, device_model, image_sha256, collector_token_hash
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::timestamptz,
           $9, $10, $11, $12, $13, $14, $15, $16, $17,
-          NULLIF($18, ''), NULLIF($19, ''), $20)
+          NULLIF($18, ''), NULLIF($19, ''), $20, $21)
       `,
       [
         id,
@@ -242,7 +248,15 @@ export async function POST(request: Request) {
         deviceManufacturer,
         deviceModel,
         imageSha256,
+        collectorToken ? hashDeviceToken(collectorToken) : null,
       ],
+    );
+
+    await sql.query(
+      `INSERT INTO road_report_events (
+        id, submission_id, event_type, workflow_status, note
+      ) VALUES ($1, $2, 'submitted', 'pending', 'Report submitted and awaiting review.')`,
+      [crypto.randomUUID(), id],
     );
 
     return NextResponse.json({ id, status: "pending" }, { status: 201 });

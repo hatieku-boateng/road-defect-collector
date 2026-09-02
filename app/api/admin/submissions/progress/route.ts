@@ -5,6 +5,8 @@ import { isAdminAuthenticated } from "../../../../../lib/admin-auth";
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from "../../../../../lib/config";
 import { ensureSchema, getSql } from "../../../../../lib/db";
 import type { ProgressImageStage } from "../../../../../lib/submissions";
+import { recordReportEvent } from "../../../../../lib/submissions";
+import { notifyReportOwner } from "../../../../../lib/push";
 
 const UUID_PATTERN = /^[0-9a-f-]{36}$/i;
 const PROGRESS_STAGES = new Set<ProgressImageStage>(["in-progress", "after"]);
@@ -78,6 +80,24 @@ export async function POST(request: Request) {
         image.name, image.type, image.size, privacyProcessed, privacyBlurCount,
       ],
     );
+    await sql.query(
+      `UPDATE road_submissions
+       SET workflow_status = $2, status = 'approved', reviewed_at = NOW()
+       WHERE id = $1`,
+      [submissionId, stage === "after" ? "repair-completed" : "repair-in-progress"],
+    );
+    await recordReportEvent(
+      submissionId,
+      "progress",
+      stage === "after" ? "repair-completed" : "repair-in-progress",
+      note || (stage === "after" ? "Repair completion image added." : "Repair progress image added."),
+      id,
+    );
+    await notifyReportOwner({
+      body: note || (stage === "after" ? "A completed repair image was added." : "A new repair progress image was added."),
+      submissionId,
+      title: "New road repair update",
+    }).catch((notificationError) => console.error("Progress notification failed", notificationError));
 
     revalidatePath("/admin");
     revalidatePath("/reports");

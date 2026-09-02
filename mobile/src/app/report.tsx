@@ -17,8 +17,15 @@ import {
 
 import { Card, Header, PrimaryButton, Screen, StatusPill } from '@/components/mobile-ui';
 import { palette, spacing } from '@/constants/theme';
-import { defects, type GpsFix, submitReport } from '@/lib/api';
-import { getDeviceIdentity, saveLocalReport, type DeviceIdentity } from '@/lib/mobile-data';
+import { defects, type GpsFix, syncQueuedReports } from '@/lib/api';
+import {
+  getDeviceIdentity,
+  listQueuedReports,
+  queueReport,
+  removeQueuedReport,
+  saveLocalReport,
+  type DeviceIdentity,
+} from '@/lib/mobile-data';
 
 type Photo = { fileName: string; mimeType: string; uri: string };
 
@@ -113,17 +120,24 @@ export default function ReportScreen() {
     }
     setBusy('submit');
     try {
-      const report = await submitReport({ area, defect, gps, identity, image: photo, privacyConfirmed });
-      await saveLocalReport(report);
-      Alert.alert('Report submitted', `Reference ${report.id.slice(0, 8).toUpperCase()} is awaiting verification.`, [
-        { text: 'View my reports', onPress: () => router.replace('/activity') },
-      ]);
+      await queueReport({ area, defect, gps, identity, image: photo, privacyConfirmed });
+      const result = await syncQueuedReports(await listQueuedReports(), async (queueId, report) => {
+        await saveLocalReport(report);
+        await removeQueuedReport(queueId);
+      });
+      Alert.alert(
+        result.failed === 0 ? 'Report submitted' : 'Saved for automatic upload',
+        result.failed === 0
+          ? 'Your report is awaiting verification.'
+          : 'There is no reliable connection. The app securely saved your report and will upload it automatically when internet returns.',
+        [{ text: 'View my reports', onPress: () => router.replace('/activity') }],
+      );
       setArea('');
       setGps(null);
       setPhoto(null);
       setPrivacyConfirmed(false);
     } catch (error) {
-      Alert.alert('Submission failed', error instanceof Error ? error.message : 'Please try again.');
+      Alert.alert('Could not save report', error instanceof Error ? error.message : 'Please try again.');
     } finally {
       setBusy(null);
     }

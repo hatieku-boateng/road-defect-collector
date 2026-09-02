@@ -6,6 +6,7 @@ import {
   type WorkflowStatus,
 } from "../../../../../lib/config";
 import { updateSubmissionReview } from "../../../../../lib/submissions";
+import { notifyReportOwner } from "../../../../../lib/push";
 
 function adminRedirect(
   request: Request,
@@ -38,6 +39,11 @@ export async function POST(request: Request) {
 
   try {
     await updateSubmissionReview(id, status as WorkflowStatus, note);
+    await notifyReportOwner({
+      body: note || `Your road report is now ${status.replaceAll("-", " ")}.`,
+      submissionId: id,
+      title: "Road report updated",
+    }).catch((notificationError) => console.error("Status notification failed", notificationError));
     revalidatePath("/admin");
     return adminRedirect(request, "success");
   } catch (error) {

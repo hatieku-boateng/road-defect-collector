@@ -66,6 +66,24 @@ self.onmessage = async (event) => {
       return;
     }
 
+    if (task === "privacy-strict") {
+      const detector = await getPotholeDetector();
+      const output = await detector(image, [
+        "a person.",
+        "a face.",
+        "a car.",
+        "a bus.",
+        "a truck.",
+        "a motorcycle.",
+        "a bicycle.",
+        "a vehicle number plate.",
+        "a shop sign.",
+        "a storefront sign.",
+      ], { threshold: 0.2 });
+      self.postMessage({ id, kind: "result", output });
+      return;
+    }
+
     const detector = await getPotholeDetector();
     const output = await detector(image, ["a pothole."], { threshold: 0.22 });
     self.postMessage({ id, kind: "result", output });

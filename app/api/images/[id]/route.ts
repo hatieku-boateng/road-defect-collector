@@ -25,7 +25,7 @@ export async function GET(
 
   return new Response(blob.stream, {
     headers: {
-      "Cache-Control": "private, max-age=300",
+      "Cache-Control": "private, no-store",
       "Content-Length": String(blob.blob.size),
       "Content-Type": blob.blob.contentType,
     },

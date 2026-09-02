@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "../../../../../lib/admin-auth";
 import { archiveSubmission } from "../../../../../lib/submissions";
+import { notifyReportOwner } from "../../../../../lib/push";
 
 const UUID_PATTERN = /^[0-9a-f-]{36}$/i;
 
@@ -20,6 +21,11 @@ export async function POST(request: Request) {
 
   try {
     await archiveSubmission(id, reason);
+    await notifyReportOwner({
+      body: reason || "Your road report was moved to the archive.",
+      submissionId: id,
+      title: "Road report archived",
+    }).catch((notificationError) => console.error("Archive notification failed", notificationError));
     revalidatePath("/admin");
     revalidatePath("/admin/archives");
     revalidatePath("/reports");

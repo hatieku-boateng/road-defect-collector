@@ -43,6 +43,7 @@ export async function ensureSchema() {
           privacy_blur_count INTEGER NOT NULL DEFAULT 0,
           device_manufacturer VARCHAR(80),
           device_model VARCHAR(80),
+          collector_token_hash CHAR(64),
           image_sha256 CHAR(64),
           archived_at TIMESTAMPTZ,
           archive_reason TEXT,
@@ -64,6 +65,7 @@ export async function ensureSchema() {
         ADD COLUMN IF NOT EXISTS privacy_blur_count INTEGER NOT NULL DEFAULT 0,
         ADD COLUMN IF NOT EXISTS device_manufacturer VARCHAR(80),
         ADD COLUMN IF NOT EXISTS device_model VARCHAR(80),
+        ADD COLUMN IF NOT EXISTS collector_token_hash CHAR(64),
         ADD COLUMN IF NOT EXISTS image_sha256 CHAR(64),
         ADD COLUMN IF NOT EXISTS workflow_status VARCHAR(30),
         ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ,
@@ -106,6 +108,10 @@ export async function ensureSchema() {
         ON road_submissions (collector_id)
       `;
       await sql`
+        CREATE INDEX IF NOT EXISTS road_submissions_collector_token_idx
+        ON road_submissions (collector_id, collector_token_hash)
+      `;
+      await sql`
         CREATE UNIQUE INDEX IF NOT EXISTS road_submissions_image_sha256_unique
         ON road_submissions (image_sha256)
         WHERE image_sha256 IS NOT NULL
@@ -135,6 +141,39 @@ export async function ensureSchema() {
       await sql`
         CREATE INDEX IF NOT EXISTS road_progress_images_submission_idx
         ON road_progress_images (submission_id, created_at)
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS road_report_events (
+          id UUID PRIMARY KEY,
+          submission_id UUID NOT NULL REFERENCES road_submissions(id) ON DELETE CASCADE,
+          event_type VARCHAR(30) NOT NULL,
+          workflow_status VARCHAR(30),
+          note TEXT,
+          progress_image_id UUID REFERENCES road_progress_images(id) ON DELETE SET NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          CONSTRAINT road_report_events_type_check
+            CHECK (event_type IN ('submitted', 'status', 'progress', 'archived', 'restored'))
+        )
+      `;
+      await sql`
+        CREATE INDEX IF NOT EXISTS road_report_events_submission_idx
+        ON road_report_events (submission_id, created_at DESC)
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS road_mobile_devices (
+          id UUID PRIMARY KEY,
+          collector_id VARCHAR(50) NOT NULL,
+          device_token_hash CHAR(64) NOT NULL,
+          expo_push_token TEXT,
+          platform VARCHAR(20),
+          notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (collector_id, device_token_hash)
+        )
+      `;
+      await sql`
+        CREATE INDEX IF NOT EXISTS road_mobile_devices_collector_idx
+        ON road_mobile_devices (collector_id, device_token_hash)
       `;
     })();
   }

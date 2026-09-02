@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Text, type ColorValue } from 'react-native';
 
 import { palette } from '@/constants/theme';
+import AppBootstrap from '@/components/app-bootstrap';
 
 const icon = (symbol: string) =>
   function TabIcon({ color }: { color: ColorValue }) {
@@ -13,6 +14,7 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style="dark" />
+      <AppBootstrap />
       <Tabs
         screenOptions={{
           headerShown: false,

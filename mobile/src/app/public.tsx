@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +21,7 @@ const label = (value: string) => defects.find((item) => item.value === value)?.l
 const canDirect = (report: PublicReport) => report.latitude !== null && report.longitude !== null;
 
 export default function PublicScreen() {
+  const galleryWidth = useWindowDimensions().width - spacing.md * 2;
   const [reports, setReports] = useState<PublicReport[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -61,7 +63,18 @@ export default function PublicScreen() {
         ) : null}
         {reports.map((report) => (
           <Card key={report.id} style={styles.reportCard}>
-            <Image alt={`Road report at ${report.area}`} source={{ uri: report.imageUrl }} style={styles.image} />
+            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.gallery}>
+              <View style={[styles.slide, { width: galleryWidth }]}>
+                <Image alt={`Road report at ${report.area}`} source={{ uri: report.imageUrl }} style={[styles.image, { width: galleryWidth }]} />
+                <Text style={styles.imageLabel}>Before</Text>
+              </View>
+              {report.progressImages.map((image) => (
+                <View key={image.id} style={[styles.slide, { width: galleryWidth }]}>
+                  <Image alt={`${image.stage} update at ${report.area}`} source={{ uri: image.imageUrl }} style={[styles.image, { width: galleryWidth }]} />
+                  <Text style={styles.imageLabel}>{image.stage === 'after' ? 'After repair' : 'In progress'}</Text>
+                </View>
+              ))}
+            </ScrollView>
             <View style={styles.reportTop}>
               <Text style={styles.defect}>{label(report.defect)}</Text>
               <StatusPill tone={report.status === 'repair-completed' ? 'good' : 'warn'}>{label(report.status)}</StatusPill>
@@ -85,7 +98,10 @@ const styles = StyleSheet.create({
   emptyCard: { alignItems: 'center', paddingVertical: 40 },
   emptyTitle: { color: palette.text, fontSize: 18, fontWeight: '900' },
   reportCard: { overflow: 'hidden', padding: 0, paddingBottom: spacing.md },
-  image: { aspectRatio: 16 / 10, backgroundColor: palette.border, width: '100%' },
+  gallery: { width: '100%' },
+  slide: { backgroundColor: palette.text },
+  image: { aspectRatio: 16 / 10, backgroundColor: palette.border },
+  imageLabel: { backgroundColor: 'rgba(0,0,0,0.7)', bottom: 8, color: '#fff', fontSize: 11, fontWeight: '800', left: 8, paddingHorizontal: 9, paddingVertical: 5, position: 'absolute' },
   reportTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingTop: spacing.md },
   defect: { color: palette.text, fontSize: 17, fontWeight: '900' },
   area: { color: palette.text, fontSize: 14, fontWeight: '700', paddingHorizontal: spacing.md },

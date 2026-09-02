@@ -6,6 +6,7 @@ export type RoadSubmission = {
   archived_at: string | null;
   area_name: string;
   collector_id: string;
+  collector_token_hash: string | null;
   created_at: string;
   device_manufacturer: string | null;
   device_model: string | null;
@@ -46,6 +47,16 @@ export type RoadProgressImage = {
   privacy_processed: boolean;
   stage: ProgressImageStage;
   submission_id: string;
+};
+
+export type RoadReportEvent = {
+  created_at: string;
+  event_type: "archived" | "progress" | "restored" | "status" | "submitted";
+  id: string;
+  note: string | null;
+  progress_image_id: string | null;
+  submission_id: string;
+  workflow_status: WorkflowStatus | null;
 };
 
 export type SubmissionFilters = {
@@ -151,6 +162,36 @@ export async function getProgressImage(id: string) {
   return (rows[0] as RoadProgressImage | undefined) ?? null;
 }
 
+export async function listReportEvents(submissionIds: string[]) {
+  if (submissionIds.length === 0) return [] as RoadReportEvent[];
+  await ensureSchema();
+  const sql = getSql();
+  const rows = await sql.query(
+    `SELECT * FROM road_report_events
+     WHERE submission_id = ANY($1::uuid[])
+     ORDER BY created_at DESC`,
+    [submissionIds],
+  );
+  return rows as RoadReportEvent[];
+}
+
+export async function recordReportEvent(
+  submissionId: string,
+  eventType: RoadReportEvent["event_type"],
+  status: WorkflowStatus | null,
+  note: string,
+  progressImageId?: string,
+) {
+  await ensureSchema();
+  const sql = getSql();
+  await sql.query(
+    `INSERT INTO road_report_events (
+      id, submission_id, event_type, workflow_status, note, progress_image_id
+    ) VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6)`,
+    [crypto.randomUUID(), submissionId, eventType, status, note, progressImageId ?? null],
+  );
+}
+
 export async function archiveSubmission(id: string, reason: string) {
   await ensureSchema();
   const sql = getSql();
@@ -162,6 +203,7 @@ export async function archiveSubmission(id: string, reason: string) {
     [id, reason],
   );
   if (rows.length === 0) throw new Error("Submission not found.");
+  await recordReportEvent(id, "archived", null, reason);
 }
 
 export async function restoreSubmission(id: string) {
@@ -175,6 +217,7 @@ export async function restoreSubmission(id: string) {
     [id],
   );
   if (rows.length === 0) throw new Error("Archived submission not found.");
+  await recordReportEvent(id, "restored", null, "Report restored from archive.");
 }
 
 export async function listPublicSubmissions() {
@@ -192,7 +235,8 @@ export async function listPublicSubmissions() {
         CASE WHEN workflow_status = ANY($1::text[]) THEN latitude ELSE NULL END AS latitude,
         CASE WHEN workflow_status = ANY($1::text[]) THEN longitude ELSE NULL END AS longitude
       FROM road_submissions
-      WHERE workflow_status <> 'rejected' AND archived_at IS NULL
+      WHERE workflow_status = ANY($1::text[])
+        AND archived_at IS NULL
       ORDER BY created_at DESC
       LIMIT 500
     `,
@@ -209,10 +253,12 @@ export async function getPublicSubmissionImage(id: string) {
     `
       SELECT image_path, image_type
       FROM road_submissions
-      WHERE id = $1 AND workflow_status <> 'rejected' AND archived_at IS NULL
+      WHERE id = $1
+        AND workflow_status = ANY($2::text[])
+        AND archived_at IS NULL
       LIMIT 1
     `,
-    [id],
+    [id, publicLocationStatuses],
   );
 
   return (rows[0] as Pick<RoadSubmission, "image_path" | "image_type"> | undefined) ?? null;
@@ -226,10 +272,11 @@ export async function listPublicProgressImages() {
       SELECT progress.*
       FROM road_progress_images progress
       JOIN road_submissions submission ON submission.id = progress.submission_id
-      WHERE submission.workflow_status <> 'rejected'
+      WHERE submission.workflow_status = ANY($1::text[])
         AND submission.archived_at IS NULL
       ORDER BY COALESCE(progress.captured_at, progress.created_at), progress.created_at
     `,
+    [publicLocationStatuses],
   );
   return rows as RoadProgressImage[];
 }
@@ -243,11 +290,11 @@ export async function getPublicProgressImage(id: string) {
       FROM road_progress_images progress
       JOIN road_submissions submission ON submission.id = progress.submission_id
       WHERE progress.id = $1
-        AND submission.workflow_status <> 'rejected'
+        AND submission.workflow_status = ANY($2::text[])
         AND submission.archived_at IS NULL
       LIMIT 1
     `,
-    [id],
+    [id, publicLocationStatuses],
   );
   return (rows[0] as RoadProgressImage | undefined) ?? null;
 }
@@ -281,4 +328,6 @@ export async function updateSubmissionReview(
   if (updated.length === 0) {
     throw new Error("Submission not found.");
   }
+  await recordReportEvent(id, "status", status, note);
+  return updated[0] as { id: string };
 }

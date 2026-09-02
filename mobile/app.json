@@ -37,6 +37,13 @@
         }
       ],
       [
+        "expo-notifications",
+        {
+          "color": "#0B5D4B",
+          "defaultChannel": "report-updates"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#0B5D4B",

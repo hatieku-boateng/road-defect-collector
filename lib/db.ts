@@ -42,6 +42,7 @@ export async function ensureSchema() {
           privacy_blur_count INTEGER NOT NULL DEFAULT 0,
           device_manufacturer VARCHAR(80),
           device_model VARCHAR(80),
+          image_sha256 CHAR(64),
           CONSTRAINT road_submissions_status_check
             CHECK (status IN ('pending', 'approved', 'rejected')),
           CONSTRAINT road_submissions_defect_check
@@ -59,7 +60,8 @@ export async function ensureSchema() {
         ADD COLUMN IF NOT EXISTS privacy_processed BOOLEAN NOT NULL DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS privacy_blur_count INTEGER NOT NULL DEFAULT 0,
         ADD COLUMN IF NOT EXISTS device_manufacturer VARCHAR(80),
-        ADD COLUMN IF NOT EXISTS device_model VARCHAR(80)
+        ADD COLUMN IF NOT EXISTS device_model VARCHAR(80),
+        ADD COLUMN IF NOT EXISTS image_sha256 CHAR(64)
       `;
 
       await sql`ALTER TABLE road_submissions ALTER COLUMN latitude DROP NOT NULL`;
@@ -78,6 +80,11 @@ export async function ensureSchema() {
       await sql`
         CREATE INDEX IF NOT EXISTS road_submissions_collector_idx
         ON road_submissions (collector_id)
+      `;
+      await sql`
+        CREATE UNIQUE INDEX IF NOT EXISTS road_submissions_image_sha256_unique
+        ON road_submissions (image_sha256)
+        WHERE image_sha256 IS NOT NULL
       `;
     })();
   }

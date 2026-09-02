@@ -19,6 +19,7 @@ A mobile-friendly road image collection and quality-review system designed to pr
 - Open-source Grounding DINO pothole candidate detection
 - Human selection of AI candidates before upload
 - Local detection and blurring of people and road vehicles before storage
+- SHA-256 duplicate prevention for previously submitted processed images
 
 ## Application routes
 

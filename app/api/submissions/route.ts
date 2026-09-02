@@ -28,6 +28,20 @@ function sanitizeFileName(fileName: string) {
     .slice(0, 80);
 }
 
+async function createImageFingerprint(image: File) {
+  const digest = await crypto.subtle.digest("SHA-256", await image.arrayBuffer());
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+function isDuplicateImageError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const databaseError = error as { code?: string; constraint?: string };
+  return databaseError.code === "23505" &&
+    databaseError.constraint === "road_submissions_image_sha256_unique";
+}
+
 export async function POST(request: Request) {
   if (!storageIsConfigured()) {
     return NextResponse.json(
@@ -167,6 +181,25 @@ export async function POST(request: Request) {
   let imagePath = "";
 
   try {
+    const fingerprintPromise = createImageFingerprint(image);
+    await ensureSchema();
+    const sql = getSql();
+    const imageSha256 = await fingerprintPromise;
+    const existing = await sql.query(
+      "SELECT id FROM road_submissions WHERE image_sha256 = $1 LIMIT 1",
+      [imageSha256],
+    );
+
+    if (existing.length > 0) {
+      return NextResponse.json(
+        {
+          error: "This image has already been submitted.",
+          existingId: String(existing[0].id),
+        },
+        { status: 409 },
+      );
+    }
+
     const blob = await put(`road-images/${id}-${safeName}`, image, {
       access: "private",
       addRandomSuffix: false,
@@ -174,8 +207,6 @@ export async function POST(request: Request) {
     });
     imagePath = blob.pathname;
 
-    await ensureSchema();
-    const sql = getSql();
     await sql.query(
       `
         INSERT INTO road_submissions (
@@ -184,11 +215,11 @@ export async function POST(request: Request) {
           image_path, image_name, image_type, image_size,
           source, video_timestamp, ai_confidence,
           privacy_processed, privacy_blur_count,
-          device_manufacturer, device_model
+          device_manufacturer, device_model, image_sha256
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::timestamptz,
           $9, $10, $11, $12, $13, $14, $15, $16, $17,
-          NULLIF($18, ''), NULLIF($19, ''))
+          NULLIF($18, ''), NULLIF($19, ''), $20)
       `,
       [
         id,
@@ -210,6 +241,7 @@ export async function POST(request: Request) {
         privacyBlurCount,
         deviceManufacturer,
         deviceModel,
+        imageSha256,
       ],
     );
 
@@ -217,6 +249,13 @@ export async function POST(request: Request) {
   } catch (error) {
     if (imagePath) {
       await del(imagePath).catch(() => undefined);
+    }
+
+    if (isDuplicateImageError(error)) {
+      return NextResponse.json(
+        { error: "This image has already been submitted." },
+        { status: 409 },
+      );
     }
 
     console.error("Road submission failed", error);

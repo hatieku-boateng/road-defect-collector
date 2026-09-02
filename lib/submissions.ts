@@ -13,6 +13,7 @@ export type RoadSubmission = {
   id: string;
   image_name: string;
   image_path: string;
+  image_sha256: string | null;
   image_size: number;
   image_type: string;
   latitude: number | null;

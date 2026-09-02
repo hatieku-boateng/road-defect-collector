@@ -320,7 +320,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   </form>
                   <details className="progress-upload-panel">
                     <summary>Add repair progress image</summary>
-                    <form action="/api/admin/submissions/progress" method="post">
+                    <form
+                      action="/api/admin/submissions/progress"
+                      encType="multipart/form-data"
+                      method="post"
+                    >
                       <input name="submissionId" type="hidden" value={submission.id} />
                       <div className="progress-fields">
                         <label>

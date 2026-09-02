@@ -1,5 +1,10 @@
 # Ghana Road Defect Monitoring
 
+The repository now contains two applications:
+
+- The Next.js web system at the repository root: API, administrator workspace, public dashboard, and drone analysis.
+- The native Expo/React Native collector in [`mobile/`](mobile/): Android and iOS camera, GPS, device identity, and report submission.
+
 A mobile-friendly road image collection and quality-review system designed to prepare reliable Ghanaian road-defect data for later AI modelling.
 
 ## Features
@@ -23,8 +28,7 @@ A mobile-friendly road image collection and quality-review system designed to pr
 - Recoverable administrator archive with submission restore
 - Privacy-processed repair progress photos organised as before, in-progress and after
 - Publicly scrollable road-repair image timelines
-- Installable mobile Progressive Web App for Android and iOS home screens
-- Standalone mobile display with camera and GPS collection shortcuts
+- Native Android and iOS collector with camera, gallery, GPS, device identity, local report receipts, and an in-app public dashboard
 - Safe offline fallback that excludes admin and private API responses
 - Local drone-video frame extraction
 - Open-source Grounding DINO pothole candidate detection

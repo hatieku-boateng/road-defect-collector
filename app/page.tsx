@@ -11,7 +11,10 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function LandingPage() {
+<<<<<<< HEAD
   const [showLoginModal, setShowLoginModal] = useState(false);
+=======
+>>>>>>> aa728d9 (admin UI)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
 
@@ -208,8 +211,13 @@ export default function LandingPage() {
         .road-showcase {
           position: relative;
           width: 100%;
+<<<<<<< HEAD
           height: 380px;
           border-radius: 16px;
+=======
+          height: clamp(300px, 35vw, 420px);
+          border-radius: 20px;
+>>>>>>> aa728d9 (admin UI)
           overflow: hidden;
           border: 1px solid #22304d;
           margin-bottom: 4rem;
@@ -221,7 +229,11 @@ export default function LandingPage() {
           position: absolute;
           inset: 0;
           z-index: 1;
+<<<<<<< HEAD
           background: linear-gradient(180deg, rgba(9, 13, 22, 0.2) 0%, rgba(9, 13, 22, 0.85) 100%);
+=======
+          background: linear-gradient(90deg, rgba(9, 13, 22, 0.08) 30%, rgba(9, 13, 22, 0.28) 100%), linear-gradient(180deg, rgba(9, 13, 22, 0.04) 20%, rgba(9, 13, 22, 0.82) 100%);
+>>>>>>> aa728d9 (admin UI)
           display: flex;
           align-items: flex-end;
           padding: 1.5rem;
@@ -233,6 +245,10 @@ export default function LandingPage() {
           border: 1px solid #22304d;
           padding: 0.6rem 1rem;
           border-radius: 10px;
+<<<<<<< HEAD
+=======
+          max-width: 100%;
+>>>>>>> aa728d9 (admin UI)
           display: flex;
           align-items: center;
           gap: 0.75rem;
@@ -247,6 +263,31 @@ export default function LandingPage() {
         .road-pill-sub {
           font-size: 0.75rem;
           color: #94a3b8;
+<<<<<<< HEAD
+=======
+          line-height: 1.5;
+        }
+
+        @media (max-width: 640px) {
+          .road-showcase {
+            height: clamp(250px, 72vw, 330px);
+            border-radius: 14px;
+          }
+
+          .road-overlay {
+            padding: 1rem;
+          }
+
+          .road-pill-badge {
+            align-items: flex-start;
+            gap: 0.6rem;
+            padding: 0.75rem;
+          }
+
+          .road-pill-sub {
+            font-size: 0.68rem;
+          }
+>>>>>>> aa728d9 (admin UI)
         }
 
         /* Feature Card Grid */
@@ -288,6 +329,7 @@ export default function LandingPage() {
           line-height: 1.6;
         }
 
+<<<<<<< HEAD
         /* Modal Overlay */
         .modal-overlay {
           position: fixed;
@@ -350,6 +392,8 @@ export default function LandingPage() {
           border-color: #f59e0b;
         }
 
+=======
+>>>>>>> aa728d9 (admin UI)
         /* Institutional Footer */
         .page-footer {
           border-top: 1px solid #22304d;
@@ -390,14 +434,22 @@ export default function LandingPage() {
             </button>
           )}
 
+<<<<<<< HEAD
           <button onClick={() => setShowLoginModal(true)} className="btn btn-secondary">
+=======
+          <Link href="/admin/login" className="btn btn-secondary">
+>>>>>>> aa728d9 (admin UI)
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
               <polyline points="10 17 15 12 10 7"/>
               <line x1="15" y1="12" x2="3" y2="12"/>
             </svg>
             <span>Officer Portal</span>
+<<<<<<< HEAD
           </button>
+=======
+          </Link>
+>>>>>>> aa728d9 (admin UI)
         </div>
       </header>
 
@@ -446,10 +498,18 @@ export default function LandingPage() {
         <div className="road-showcase">
           <Image
             src="/road-banner.jpg"
+<<<<<<< HEAD
             alt=""
             fill
             sizes="(max-width: 1150px) calc(100vw - 3rem), 1102px"
             preload
+=======
+            alt="A pothole-damaged road in Ga Central Municipality"
+            fill
+            sizes="(max-width: 1150px) calc(100vw - 3rem), 1102px"
+            preload
+            unoptimized
+>>>>>>> aa728d9 (admin UI)
             style={{ objectFit: 'cover', objectPosition: 'center' }}
           />
           <div className="road-overlay">
@@ -509,6 +569,7 @@ export default function LandingPage() {
         </div>
       </main>
 
+<<<<<<< HEAD
       {/* Municipal Officer Login Modal */}
       {showLoginModal && (
         <div className="modal-overlay">
@@ -556,6 +617,8 @@ export default function LandingPage() {
         </div>
       )}
 
+=======
+>>>>>>> aa728d9 (admin UI)
       {/* Collaboration Footer */}
       <footer className="page-footer">
         Pentecost University &bull; Faculty of Engineering and Computing &bull; Department of Industrial Software Engineering[cite: 4]

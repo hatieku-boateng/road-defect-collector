@@ -18,10 +18,41 @@ export async function loginAction(
     if (!verifyAdminPassword(password)) {
       return { error: "The administrator password is incorrect." };
     }
+<<<<<<< HEAD
 
     await createAdminSession();
   } catch {
     return { error: "Administrator access has not been configured." };
+=======
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === "ADMIN_PASSWORD is not configured."
+    ) {
+      return {
+        error:
+          "Administrator sign-in is not configured. Set ADMIN_PASSWORD in the deployment environment.",
+      };
+    }
+
+    throw error;
+  }
+
+  try {
+    await createAdminSession();
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === "SESSION_SECRET is not configured."
+    ) {
+      return {
+        error:
+          "Administrator sessions are not configured. Set SESSION_SECRET in the deployment environment.",
+      };
+    }
+
+    throw error;
+>>>>>>> aa728d9 (admin UI)
   }
 
   redirect("/admin");

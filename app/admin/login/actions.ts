@@ -18,12 +18,8 @@ export async function loginAction(
     if (!verifyAdminPassword(password)) {
       return { error: "The administrator password is incorrect." };
     }
-<<<<<<< HEAD
 
     await createAdminSession();
-  } catch {
-    return { error: "Administrator access has not been configured." };
-=======
   } catch (error) {
     if (
       error instanceof Error &&
@@ -35,12 +31,6 @@ export async function loginAction(
       };
     }
 
-    throw error;
-  }
-
-  try {
-    await createAdminSession();
-  } catch (error) {
     if (
       error instanceof Error &&
       error.message === "SESSION_SECRET is not configured."
@@ -51,8 +41,9 @@ export async function loginAction(
       };
     }
 
-    throw error;
->>>>>>> aa728d9 (admin UI)
+    return {
+      error: "Administrator access has not been configured.",
+    };
   }
 
   redirect("/admin");

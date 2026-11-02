@@ -1,11 +1,6 @@
 :root {
-<<<<<<< HEAD
-  --ink: #102620;
-  --muted: #5c6f68;
-=======
   --ink: #096652;
   --muted: #3f8f72;
->>>>>>> aa728d9 (admin UI)
   --surface: #f3f7f3;
   --card: #ffffff;
   --green: #0b5d4b;
@@ -1167,48 +1162,16 @@ footer p {
 .admin-login-page {
   align-items: center;
   background:
-<<<<<<< HEAD
-    radial-gradient(circle at 80% 10%, rgb(241 180 76 / 18%), transparent 26%),
-    var(--green-dark);
-  display: flex;
-  justify-content: center;
-  min-height: 100vh;
-=======
     radial-gradient(circle at 82% 12%, rgb(245 158 11 / 12%), transparent 30%),
     #090d16;
   display: flex;
   justify-content: center;
   min-height: 100vh;
   min-height: 100svh;
->>>>>>> aa728d9 (admin UI)
   padding: 24px;
 }
 
 .admin-login-card {
-<<<<<<< HEAD
-  background: white;
-  border-radius: 26px;
-  box-shadow: 0 30px 90px rgb(0 0 0 / 28%);
-  display: grid;
-  gap: 34px;
-  max-width: 500px;
-  padding: 34px;
-  width: 100%;
-}
-
-.admin-login-card h1 {
-  font-size: clamp(36px, 6vw, 52px);
-}
-
-.admin-login-card .intro {
-  font-size: 13px;
-  margin-bottom: 0;
-}
-
-.admin-login-form {
-  display: grid;
-  gap: 10px;
-=======
   background: #131b2e;
   border: 1px solid #22304d;
   border-radius: 16px;
@@ -1317,7 +1280,6 @@ footer p {
 .admin-login-form .submit-button:focus-visible {
   outline: 3px solid rgb(245 158 11 / 40%);
   outline-offset: 3px;
->>>>>>> aa728d9 (admin UI)
 }
 
 .admin-page {
@@ -2330,19 +2292,6 @@ footer p {
 
 @media (max-width: 520px) {
 
-<<<<<<< HEAD
-=======
-  .admin-login-page {
-    padding: 18px;
-  }
-
-  .admin-login-card {
-    border-radius: 20px;
-    gap: 26px;
-    padding: 28px 24px;
-  }
-
->>>>>>> aa728d9 (admin UI)
   .site-header,
   .hero {
     padding-left: 20px;

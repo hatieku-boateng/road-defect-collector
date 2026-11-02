@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -11,10 +10,6 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function LandingPage() {
-<<<<<<< HEAD
-  const [showLoginModal, setShowLoginModal] = useState(false);
-=======
->>>>>>> aa728d9 (admin UI)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
 
@@ -57,7 +52,7 @@ export default function LandingPage() {
           padding: 0;
         }
 
-        /* Navigation Header */
+        /* Top Navigation Header */
         .site-header {
           border-bottom: 1px solid #22304d;
           background: rgba(9, 13, 22, 0.9);
@@ -110,7 +105,7 @@ export default function LandingPage() {
           gap: 0.75rem;
         }
 
-        /* Buttons */
+        /* Action Buttons */
         .btn {
           display: inline-flex;
           align-items: center;
@@ -153,7 +148,7 @@ export default function LandingPage() {
           background: rgba(16, 185, 129, 0.25);
         }
 
-        /* Hero Container */
+        /* Hero Wrapper */
         .hero-container {
           max-width: 1150px;
           margin: 0 auto;
@@ -207,33 +202,26 @@ export default function LandingPage() {
           margin-bottom: 3rem;
         }
 
-        /* Road Path Showcase Card */
+        /* Defect Photo Showcase */
         .road-showcase {
           position: relative;
           width: 100%;
-<<<<<<< HEAD
           height: 380px;
           border-radius: 16px;
-=======
-          height: clamp(300px, 35vw, 420px);
-          border-radius: 20px;
->>>>>>> aa728d9 (admin UI)
           overflow: hidden;
           border: 1px solid #22304d;
           margin-bottom: 4rem;
           box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
           background-color: #131b2e;
+          background-image: url('/road-banner.jpg');
+          background-size: cover;
+          background-position: center;
         }
 
         .road-overlay {
           position: absolute;
           inset: 0;
-          z-index: 1;
-<<<<<<< HEAD
           background: linear-gradient(180deg, rgba(9, 13, 22, 0.2) 0%, rgba(9, 13, 22, 0.85) 100%);
-=======
-          background: linear-gradient(90deg, rgba(9, 13, 22, 0.08) 30%, rgba(9, 13, 22, 0.28) 100%), linear-gradient(180deg, rgba(9, 13, 22, 0.04) 20%, rgba(9, 13, 22, 0.82) 100%);
->>>>>>> aa728d9 (admin UI)
           display: flex;
           align-items: flex-end;
           padding: 1.5rem;
@@ -245,10 +233,6 @@ export default function LandingPage() {
           border: 1px solid #22304d;
           padding: 0.6rem 1rem;
           border-radius: 10px;
-<<<<<<< HEAD
-=======
-          max-width: 100%;
->>>>>>> aa728d9 (admin UI)
           display: flex;
           align-items: center;
           gap: 0.75rem;
@@ -263,34 +247,9 @@ export default function LandingPage() {
         .road-pill-sub {
           font-size: 0.75rem;
           color: #94a3b8;
-<<<<<<< HEAD
-=======
-          line-height: 1.5;
         }
 
-        @media (max-width: 640px) {
-          .road-showcase {
-            height: clamp(250px, 72vw, 330px);
-            border-radius: 14px;
-          }
-
-          .road-overlay {
-            padding: 1rem;
-          }
-
-          .road-pill-badge {
-            align-items: flex-start;
-            gap: 0.6rem;
-            padding: 0.75rem;
-          }
-
-          .road-pill-sub {
-            font-size: 0.68rem;
-          }
->>>>>>> aa728d9 (admin UI)
-        }
-
-        /* Feature Card Grid */
+        /* Feature Cards Grid */
         .feature-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -329,72 +288,7 @@ export default function LandingPage() {
           line-height: 1.6;
         }
 
-<<<<<<< HEAD
-        /* Modal Overlay */
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(4, 7, 14, 0.8);
-          backdrop-filter: blur(5px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 100;
-          padding: 1.25rem;
-        }
-
-        .modal-box {
-          background: #131b2e;
-          border: 1px solid #22304d;
-          border-radius: 14px;
-          width: 100%;
-          max-width: 430px;
-          padding: 2rem;
-          position: relative;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-        }
-
-        .modal-close-btn {
-          position: absolute;
-          top: 1.25rem;
-          right: 1.25rem;
-          background: transparent;
-          border: none;
-          color: #94a3b8;
-          cursor: pointer;
-        }
-        .modal-close-btn:hover {
-          color: #ffffff;
-        }
-
-        .input-label {
-          display: block;
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-          color: #94a3b8;
-          margin-bottom: 0.4rem;
-        }
-
-        .text-input {
-          width: 100%;
-          padding: 0.75rem 0.9rem;
-          background: #090d16;
-          border: 1px solid #22304d;
-          border-radius: 7px;
-          color: #f1f5f9;
-          font-size: 0.95rem;
-          outline: none;
-          margin-bottom: 1.25rem;
-        }
-        .text-input:focus {
-          border-color: #f59e0b;
-        }
-
-=======
->>>>>>> aa728d9 (admin UI)
-        /* Institutional Footer */
+        /* Footer */
         .page-footer {
           border-top: 1px solid #22304d;
           padding: 2.25rem 1.5rem;
@@ -406,7 +300,7 @@ export default function LandingPage() {
         }
       `}} />
 
-      {/* Top Header */}
+      {/* Navigation Bar */}
       <header className="site-header">
         <div className="brand-group">
           <div className="brand-icon">
@@ -434,26 +328,19 @@ export default function LandingPage() {
             </button>
           )}
 
-<<<<<<< HEAD
-          <button onClick={() => setShowLoginModal(true)} className="btn btn-secondary">
-=======
+          {/* Direct link straight to the original administrator login page */}
           <Link href="/admin/login" className="btn btn-secondary">
->>>>>>> aa728d9 (admin UI)
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
               <polyline points="10 17 15 12 10 7"/>
               <line x1="15" y1="12" x2="3" y2="12"/>
             </svg>
-            <span>Officer Portal</span>
-<<<<<<< HEAD
-          </button>
-=======
+            <span>Admin Sign-In</span>
           </Link>
->>>>>>> aa728d9 (admin UI)
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Main Content */}
       <main className="hero-container">
         <div className="badge-tag">
           <span className="pulse-indicator"></span>
@@ -465,7 +352,7 @@ export default function LandingPage() {
         </h1>
 
         <p className="hero-subtext">
-          A mobile-friendly reporting and quality-review system connecting citizens and municipal engineers in Ga Central (Sowutuom, Santa Maria, Anyaa, and Ablekuma) to monitor road defects, ensure public privacy, and track maintenance lifecycles[cite: 3, 4].
+          A mobile-friendly reporting and quality-review system connecting citizens and municipal engineers in Ga Central (Sowutuom, Santa Maria, Anyaa, and Ablekuma) to monitor road defects, ensure public privacy, and track maintenance lifecycles[cite: 4, 5].
         </p>
 
         <div className="hero-actions">
@@ -494,24 +381,8 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        {/* Road Path Visual Showcase */}
+        {/* Road Visual Showcase */}
         <div className="road-showcase">
-          <Image
-            src="/road-banner.jpg"
-<<<<<<< HEAD
-            alt=""
-            fill
-            sizes="(max-width: 1150px) calc(100vw - 3rem), 1102px"
-            preload
-=======
-            alt="A pothole-damaged road in Ga Central Municipality"
-            fill
-            sizes="(max-width: 1150px) calc(100vw - 3rem), 1102px"
-            preload
-            unoptimized
->>>>>>> aa728d9 (admin UI)
-            style={{ objectFit: 'cover', objectPosition: 'center' }}
-          />
           <div className="road-overlay">
             <div className="road-pill-badge">
               <div style={{ color: '#f59e0b' }}>
@@ -538,7 +409,7 @@ export default function LandingPage() {
             </div>
             <h3 className="card-title">Privacy-By-Design Blurring</h3>
             <p className="card-desc">
-              Complies with Ghana Data Protection Act (Act 843). Automatically detects and blurs human faces, vehicle bodies, and license plates before storage[cite: 3].
+              Complies with Ghana Data Protection Act (Act 843). Automatically detects and blurs human faces, vehicle bodies, and license plates before storage.
             </p>
           </div>
 
@@ -551,7 +422,7 @@ export default function LandingPage() {
             </div>
             <h3 className="card-title">GPS &amp; Digital Addresses</h3>
             <p className="card-desc">
-              Captures high-precision device GPS coordinates, timestamps, and GhanaPostGPS digital addresses for rapid assembly engineer dispatch[cite: 3, 4].
+              Captures high-precision device GPS coordinates, timestamps, and GhanaPostGPS digital addresses for rapid assembly engineer dispatch[cite: 4, 5].
             </p>
           </div>
 
@@ -563,67 +434,17 @@ export default function LandingPage() {
             </div>
             <h3 className="card-title">Maintenance Lifecycles</h3>
             <p className="card-desc">
-              Follow repair progress through transparent before, in-progress, and after inspection photo timelines and verification stages[cite: 3].
+              Follow repair progress through transparent before, in-progress, and after inspection photo timelines and verification stages.
             </p>
           </div>
         </div>
       </main>
 
-<<<<<<< HEAD
-      {/* Municipal Officer Login Modal */}
-      {showLoginModal && (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            <button 
-              onClick={() => setShowLoginModal(false)} 
-              className="modal-close-btn"
-              aria-label="Close modal"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.4rem', color: '#ffffff' }}>
-              Officer Sign-In
-            </h2>
-            <p style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-              Enter the Ga Central Municipal Assembly review key to manage queues, reviews, and repair lifecycles[cite: 3, 4].
-            </p>
-
-            <form action="/admin/login" method="POST">
-              <div>
-                <label className="input-label">Administrator Password</label>
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="Enter administrator password"
-                  required
-                  autoFocus
-                  className="text-input"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary"
-                style={{ width: '100%', justifyContent: 'center', padding: '0.75rem', fontSize: '0.95rem' }}
-              >
-                Sign In to Review Portal
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-=======
->>>>>>> aa728d9 (admin UI)
-      {/* Collaboration Footer */}
+      {/* Institutional Footer */}
       <footer className="page-footer">
-        Pentecost University &bull; Faculty of Engineering and Computing &bull; Department of Industrial Software Engineering[cite: 4]
+        Pentecost University &bull; Faculty of Engineering and Computing &bull; Department of Industrial Software Engineering[cite: 5]
         <br />
-        Project Supervisor: Mr. Harry Atieku-Boateng &bull; Ga Central Municipal Assembly (GCMA) Academic Pilot[cite: 4]
+        Project Supervisor: Mr. Harry Atieku-Boateng &bull; Ga Central Municipal Assembly (GCMA) Academic Pilot[cite: 5]
       </footer>
     </div>
   );

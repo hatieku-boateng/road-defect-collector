@@ -2,21 +2,186 @@ import { get } from "@vercel/blob";
 import { isAdminAuthenticated } from "../../../../lib/admin-auth";
 import { getProgressImage } from "../../../../lib/submissions";
 
-const UUID_PATTERN = /^[0-9a-f-]{36}$/i;
+/** Strict 8-4-4-4-12 hexadecimal UUID pattern */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function GET(_request: Request, context: RouteContext<"/api/progress-images/[id]">) {
-  if (!(await isAdminAuthenticated())) return new Response("Unauthorized", { status: 401 });
-  const { id } = await context.params;
-  if (!UUID_PATTERN.test(id)) return new Response("Not found", { status: 404 });
-  const image = await getProgressImage(id);
-  if (!image) return new Response("Not found", { status: 404 });
-  const blob = await get(image.image_path, { access: "private" });
-  if (!blob || blob.statusCode !== 200 || !blob.stream) return new Response("Not found", { status: 404 });
-  return new Response(blob.stream, {
-    headers: {
-      "Cache-Control": "private, max-age=300",
-      "Content-Type": image.image_type,
+const ALLOWED_OUTPUT_MIMES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+]);
+
+interface DynamicRouteContext {
+  params: Promise<{ id: string }>;
+}
+
+function sanitizeFileName(
+  rawName: string | null | undefined,
+  fallbackId: string,
+): string {
+  const cleaned = (rawName ?? "")
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
+
+  return cleaned || `progress-${fallbackId}.jpg`;
+}
+
+function buildETag(image: {
+  id: string;
+  image_path: string;
+  image_size?: number | string | null;
+}): string {
+  const sizePart = Number(image.image_size ?? 0) || 0;
+  const pathTail = Buffer.from(image.image_path)
+    .toString("base64url")
+    .slice(-16);
+  return `W/"${image.id}-${sizePart}-${pathTail}"`;
+}
+
+function matchesIfNoneMatch(
+  ifNoneMatchHeader: string | null,
+  etag: string,
+): boolean {
+  if (!ifNoneMatchHeader) return false;
+  const candidates = ifNoneMatchHeader.split(",").map((part) => part.trim());
+  const normalizedTarget = etag.replace(/^W\//, "");
+
+  return candidates.some(
+    (candidate) =>
+      candidate === "*" ||
+      candidate === etag ||
+      candidate.replace(/^W\//, "") === normalizedTarget,
+  );
+}
+
+async function handleProgressImageRequest(
+  request: Request,
+  context: DynamicRouteContext,
+  headOnly: boolean,
+): Promise<Response> {
+  if (!(await isAdminAuthenticated())) {
+    return new Response("Unauthorized", {
+      status: 401,
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  }
+
+  const { id: rawId } = await context.params;
+  const id = (rawId ?? "").trim();
+
+  if (!UUID_PATTERN.test(id)) {
+    return new Response("Invalid progress image ID", {
+      status: 400,
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  }
+
+  try {
+    const image = await getProgressImage(id);
+
+    if (!image || !image.image_path) {
+      return new Response("Not found", {
+        status: 404,
+        headers: { "Cache-Control": "private, no-store" },
+      });
+    }
+
+    const etag = buildETag(image);
+    const url = new URL(request.url);
+    const forceDownload =
+      url.searchParams.get("download") === "1" ||
+      url.searchParams.get("download") === "true";
+
+    const safeFileName = sanitizeFileName(image.image_name, image.id);
+    const dispositionType = forceDownload ? "attachment" : "inline";
+    const dbMime = (image.image_type ?? "").toLowerCase();
+    const dbSize = Number(image.image_size ?? 0);
+
+    const baseSecurityHeaders: Record<string, string> = {
+      // Revalidate admin session on every request while allowing 304 Not Modified
+      "Cache-Control": "private, no-cache, max-age=0, must-revalidate",
+      "Content-Disposition": `${dispositionType}; filename="${safeFileName}"`,
+      "Cross-Origin-Resource-Policy": "same-origin",
+      ETag: etag,
+      Vary: "Cookie",
       "X-Content-Type-Options": "nosniff",
-    },
-  });
+    };
+
+    if (matchesIfNoneMatch(request.headers.get("if-none-match"), etag)) {
+      return new Response(null, {
+        status: 304,
+        headers: baseSecurityHeaders,
+      });
+    }
+
+    // Fast path for HEAD requests when valid metadata is already stored in Postgres
+    if (
+      headOnly &&
+      ALLOWED_OUTPUT_MIMES.has(dbMime) &&
+      Number.isFinite(dbSize) &&
+      dbSize > 0
+    ) {
+      return new Response(null, {
+        status: 200,
+        headers: {
+          ...baseSecurityHeaders,
+          "Content-Length": String(dbSize),
+          "Content-Type": image.image_type,
+        },
+      });
+    }
+
+    const blob = await get(image.image_path, { access: "private" });
+
+    if (!blob || blob.statusCode !== 200 || !blob.stream) {
+      return new Response("Not found", {
+        status: 404,
+        headers: { "Cache-Control": "private, no-store" },
+      });
+    }
+
+    const blobMime = (blob.blob.contentType ?? "").toLowerCase();
+    const resolvedContentType = ALLOWED_OUTPUT_MIMES.has(blobMime)
+      ? blob.blob.contentType
+      : ALLOWED_OUTPUT_MIMES.has(dbMime)
+        ? image.image_type
+        : "application/octet-stream";
+
+    const responseHeaders: Record<string, string> = {
+      ...baseSecurityHeaders,
+      "Content-Length": String(blob.blob.size),
+      "Content-Type": resolvedContentType,
+    };
+
+    if (headOnly) {
+      await blob.stream.cancel().catch(() => undefined);
+      return new Response(null, {
+        status: 200,
+        headers: responseHeaders,
+      });
+    }
+
+    return new Response(blob.stream, {
+      status: 200,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    console.error(`Failed to serve admin progress image [${id}]`, error);
+    return new Response("Unable to load progress image", {
+      status: 500,
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  }
+}
+
+export async function GET(request: Request, context: DynamicRouteContext) {
+  return handleProgressImageRequest(request, context, false);
+}
+
+export async function HEAD(request: Request, context: DynamicRouteContext) {
+  return handleProgressImageRequest(request, context, true);
 }

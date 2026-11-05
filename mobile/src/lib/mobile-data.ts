@@ -37,14 +37,21 @@ export type QueuedReport = {
   queueId: string;
 };
 
+export type MyReportCache = {
+  reports?: any[];
+  [key: string]: any;
+};
+
 const IDENTITY_FILE = `${FileSystem.documentDirectory ?? ''}road-watcher-identity.json`;
 const REPORTS_FILE = `${FileSystem.documentDirectory ?? ''}road-watcher-reports.json`;
 const QUEUE_FILE = `${FileSystem.documentDirectory ?? ''}road-watcher-queue.json`;
+const MY_REPORTS_CACHE_FILE = `${FileSystem.documentDirectory ?? ''}road-watcher-my-reports.json`;
 
 const WEB_STORAGE_KEYS = {
   identity: 'road_watcher_web_identity',
   reports: 'road_watcher_web_reports',
   queue: 'road_watcher_web_queue',
+  myReports: 'road_watcher_web_my_reports',
 };
 
 async function readJson<T>(fileUri: string, webKey: string, fallback: T): Promise<T> {
@@ -128,6 +135,11 @@ export async function getLocalReports(): Promise<LocalReport[]> {
   return readJson<LocalReport[]>(REPORTS_FILE, WEB_STORAGE_KEYS.reports, []);
 }
 
+/** Alias for compatibility with screens calling listLocalReports */
+export async function listLocalReports(): Promise<LocalReport[]> {
+  return getLocalReports();
+}
+
 export async function saveLocalReport(report: LocalReport): Promise<void> {
   const reports = await getLocalReports();
   const updated = [report, ...reports.filter((r) => r.id !== report.id)];
@@ -138,11 +150,22 @@ export async function getQueuedReports(): Promise<QueuedReport[]> {
   return readJson<QueuedReport[]>(QUEUE_FILE, WEB_STORAGE_KEYS.queue, []);
 }
 
-export async function queueReport(draft: QueuedReport['identity'] extends any ? Omit<QueuedReport, 'queueId' | 'queuedAt'> : never): Promise<void> {
+/** Alias for compatibility with sync routines calling listQueuedReports */
+export async function listQueuedReports(): Promise<QueuedReport[]> {
+  return getQueuedReports();
+}
+
+export async function queueReport(
+  draft: QueuedReport['identity'] extends any
+    ? Omit<QueuedReport, 'queueId' | 'queuedAt'>
+    : never,
+): Promise<void> {
   const queue = await getQueuedReports();
   const newEntry: QueuedReport = {
     ...draft,
-    queueId: crypto.randomUUID ? crypto.randomUUID() : `queue-${Date.now()}-${Math.random()}`,
+    queueId: crypto.randomUUID
+      ? crypto.randomUUID()
+      : `queue-${Date.now()}-${Math.random()}`,
     queuedAt: new Date().toISOString(),
   };
   await writeJson(QUEUE_FILE, WEB_STORAGE_KEYS.queue, [...queue, newEntry]);
@@ -152,4 +175,26 @@ export async function removeQueuedReport(queueId: string): Promise<void> {
   const queue = await getQueuedReports();
   const updated = queue.filter((item) => item.queueId !== queueId);
   await writeJson(QUEUE_FILE, WEB_STORAGE_KEYS.queue, updated);
+}
+
+export async function readCachedMyReports(): Promise<any[]> {
+  const data = await readJson<any[] | MyReportCache>(
+    MY_REPORTS_CACHE_FILE,
+    WEB_STORAGE_KEYS.myReports,
+    [],
+  );
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray((data as MyReportCache).reports)) {
+    return (data as MyReportCache).reports!;
+  }
+  return [];
+}
+
+/** Alias for compatibility */
+export async function getCachedMyReports(): Promise<any[]> {
+  return readCachedMyReports();
+}
+
+export async function saveCachedMyReports(reports: any[]): Promise<void> {
+  await writeJson(MY_REPORTS_CACHE_FILE, WEB_STORAGE_KEYS.myReports, reports);
 }

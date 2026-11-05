@@ -1,7 +1,13 @@
 import * as Device from 'expo-device';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
 
-import type { MyReport, ReportDraft } from './api';
+export type DeviceIdentity = {
+  collectorId: string;
+  deviceToken: string;
+  manufacturer: string;
+  model: string;
+};
 
 export type LocalReport = {
   area: string;
@@ -11,103 +17,139 @@ export type LocalReport = {
   status: string;
 };
 
-export type DeviceIdentity = {
-  collectorId: string;
-  deviceToken: string;
-  manufacturer: string;
-  model: string;
+export type QueuedReport = {
+  area: string;
+  defect: any;
+  gps: {
+    accuracy: number;
+    latitude: number;
+    longitude: number;
+    timestamp: string;
+  };
+  identity: DeviceIdentity;
+  image: {
+    fileName: string;
+    mimeType: string;
+    uri: string;
+  };
+  privacyConfirmed: boolean;
+  queuedAt: string;
+  queueId: string;
 };
 
-export type QueuedReport = ReportDraft & { queueId: string; queuedAt: string };
+const IDENTITY_FILE = `${FileSystem.documentDirectory ?? ''}road-watcher-identity.json`;
+const REPORTS_FILE = `${FileSystem.documentDirectory ?? ''}road-watcher-reports.json`;
+const QUEUE_FILE = `${FileSystem.documentDirectory ?? ''}road-watcher-queue.json`;
 
-const root = FileSystem.documentDirectory ?? FileSystem.cacheDirectory ?? '';
-const identityFile = `${root}collector-identity.json`;
-const historyFile = `${root}report-history.json`;
-const queueFile = `${root}pending-report-queue.json`;
-const remoteReportsFile = `${root}remote-report-cache.json`;
-const queueDirectory = `${root}pending-road-photos/`;
+const WEB_STORAGE_KEYS = {
+  identity: 'road_watcher_web_identity',
+  reports: 'road_watcher_web_reports',
+  queue: 'road_watcher_web_queue',
+};
 
-function numericId() {
-  return Array.from({ length: 12 }, (_, index) => {
-    const value = Math.floor(Math.random() * 10);
-    return String(index === 0 && value === 0 ? 1 : value);
-  }).join('');
-}
+async function readJson<T>(fileUri: string, webKey: string, fallback: T): Promise<T> {
+  if (Platform.OS === 'web') {
+    try {
+      const item = localStorage.getItem(webKey);
+      return item ? (JSON.parse(item) as T) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
 
-function secretToken() {
-  const random = Array.from({ length: 5 }, () => Math.random().toString(36).slice(2)).join('');
-  return `device-${Date.now().toString(36)}-${random}`.slice(0, 80);
-}
-
-async function readJson<T>(uri: string, fallback: T): Promise<T> {
   try {
-    const info = await FileSystem.getInfoAsync(uri);
+    const info = await FileSystem.getInfoAsync(fileUri);
     if (!info.exists) return fallback;
-    return JSON.parse(await FileSystem.readAsStringAsync(uri)) as T;
+    const content = await FileSystem.readAsStringAsync(fileUri);
+    return JSON.parse(content) as T;
   } catch {
     return fallback;
   }
 }
 
-async function writeJson(uri: string, value: unknown) {
-  await FileSystem.writeAsStringAsync(uri, JSON.stringify(value));
+async function writeJson(fileUri: string, webKey: string, value: unknown): Promise<void> {
+  const serialized = JSON.stringify(value);
+  if (Platform.OS === 'web') {
+    try {
+      localStorage.setItem(webKey, serialized);
+    } catch (error) {
+      console.warn('Failed to save to web localStorage', error);
+    }
+    return;
+  }
+
+  try {
+    await FileSystem.writeAsStringAsync(fileUri, serialized);
+  } catch (error) {
+    console.warn('Failed to write local file system cache', error);
+  }
+}
+
+function generateCollectorId(): string {
+  let result = '';
+  for (let i = 0; i < 12; i++) {
+    result += Math.floor(Math.random() * 10);
+  }
+  return result;
+}
+
+function generateDeviceToken(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  for (let i = 0; i < 36; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
 }
 
 export async function getDeviceIdentity(): Promise<DeviceIdentity> {
-  const current = await readJson<Partial<DeviceIdentity>>(identityFile, {});
-  const collectorId = /^\d{12}$/.test(current.collectorId ?? '') ? current.collectorId! : numericId();
-  const deviceToken = /^[a-z0-9-]{24,100}$/i.test(current.deviceToken ?? '') ? current.deviceToken! : secretToken();
-  const identity = {
-    collectorId,
-    deviceToken,
-    manufacturer: Device.manufacturer || 'Unknown manufacturer',
-    model: Device.modelName || 'Unknown model',
+  const existing = await readJson<DeviceIdentity | null>(
+    IDENTITY_FILE,
+    WEB_STORAGE_KEYS.identity,
+    null,
+  );
+
+  if (existing && existing.collectorId && existing.deviceToken) {
+    return existing;
+  }
+
+  const identity: DeviceIdentity = {
+    collectorId: generateCollectorId(),
+    deviceToken: generateDeviceToken(),
+    manufacturer: Device.manufacturer || 'Unknown',
+    model: Device.modelName || Device.deviceName || 'Generic Device',
   };
-  await writeJson(identityFile, identity);
+
+  await writeJson(IDENTITY_FILE, WEB_STORAGE_KEYS.identity, identity);
   return identity;
 }
 
-export async function listLocalReports() {
-  return readJson<LocalReport[]>(historyFile, []);
+export async function getLocalReports(): Promise<LocalReport[]> {
+  return readJson<LocalReport[]>(REPORTS_FILE, WEB_STORAGE_KEYS.reports, []);
 }
 
-export async function saveLocalReport(report: LocalReport) {
-  const reports = await listLocalReports();
-  if (reports.some((item) => item.id === report.id)) return;
-  await writeJson(historyFile, [report, ...reports].slice(0, 100));
+export async function saveLocalReport(report: LocalReport): Promise<void> {
+  const reports = await getLocalReports();
+  const updated = [report, ...reports.filter((r) => r.id !== report.id)];
+  await writeJson(REPORTS_FILE, WEB_STORAGE_KEYS.reports, updated);
 }
 
-export async function cacheMyReports(reports: MyReport[]) {
-  await writeJson(remoteReportsFile, reports);
+export async function getQueuedReports(): Promise<QueuedReport[]> {
+  return readJson<QueuedReport[]>(QUEUE_FILE, WEB_STORAGE_KEYS.queue, []);
 }
 
-export async function readCachedMyReports() {
-  return readJson<MyReport[]>(remoteReportsFile, []);
-}
-
-export async function listQueuedReports() {
-  return readJson<QueuedReport[]>(queueFile, []);
-}
-
-export async function queueReport(draft: ReportDraft) {
-  await FileSystem.makeDirectoryAsync(queueDirectory, { intermediates: true });
-  const queueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-  const imageUri = `${queueDirectory}${queueId}.jpg`;
-  await FileSystem.copyAsync({ from: draft.image.uri, to: imageUri });
-  const queued: QueuedReport = {
+export async function queueReport(draft: QueuedReport['identity'] extends any ? Omit<QueuedReport, 'queueId' | 'queuedAt'> : never): Promise<void> {
+  const queue = await getQueuedReports();
+  const newEntry: QueuedReport = {
     ...draft,
-    image: { ...draft.image, uri: imageUri },
-    queueId,
+    queueId: crypto.randomUUID ? crypto.randomUUID() : `queue-${Date.now()}-${Math.random()}`,
     queuedAt: new Date().toISOString(),
   };
-  const reports = await listQueuedReports();
-  await writeJson(queueFile, [...reports, queued]);
-  return queued;
+  await writeJson(QUEUE_FILE, WEB_STORAGE_KEYS.queue, [...queue, newEntry]);
 }
 
-export async function removeQueuedReport(queueId: string) {
-  const reports = await listQueuedReports();
-  const removed = reports.find((item) => item.queueId === queueId);
-  await writeJson(queueFile, reports.filter((item) => item.queueId !== queueId));
-  if (removed) await FileSystem.deleteAsync(removed.image.uri, { idempotent: true }).catch(() => undefined);
+export async function removeQueuedReport(queueId: string): Promise<void> {
+  const queue = await getQueuedReports();
+  const updated = queue.filter((item) => item.queueId !== queueId);
+  await writeJson(QUEUE_FILE, WEB_STORAGE_KEYS.queue, updated);
 }

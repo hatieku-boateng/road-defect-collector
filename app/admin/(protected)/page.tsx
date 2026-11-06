@@ -5,6 +5,7 @@ import {
   DEFECT_TYPE_LABELS,
   DEFECT_TYPES,
   getDirectionsUrl,
+  isValidGpsCoordinate,
   MAX_NOTE_LENGTH,
   PROGRESS_STAGE_LABELS,
   statusAllowsDirections,
@@ -12,6 +13,7 @@ import {
   WORKFLOW_STATUSES,
   type DefectType,
   type ProgressImageStage,
+  type WorkflowStatus,
 } from "../../../lib/config";
 import {
   listProgressImages,
@@ -26,36 +28,69 @@ import MapShell from "./map-shell";
 import PrivacyRecheck from "./privacy-recheck";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Administrator dashboard" };
+
+export const metadata: Metadata = {
+  title: "Administrator dashboard",
+  description:
+    "Triage field road defect submissions, verify privacy redaction, and track repair progress.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 type AdminPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+type SortMode =
+  | "newest"
+  | "oldest"
+  | "priority"
+  | "accuracy"
+  | "confidence";
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "short",
 });
 
-const METRIC_LABELS: Readonly<Record<string, string>> = {
-  total: "Total in view",
-  pending: "Pending review",
-  verified: "Verified",
-  active: "In progress",
-  completed: "Completed",
-  rejected: "Rejected",
-};
+const METRIC_CARDS: ReadonlyArray<{
+  key: "total" | "pending" | "verified" | "active" | "completed" | "rejected";
+  label: string;
+  statusFilter: string;
+}> = [
+  { key: "total", label: "Total in view", statusFilter: "" },
+  { key: "pending", label: "Pending review", statusFilter: "pending" },
+  { key: "verified", label: "Verified", statusFilter: "verified" },
+  { key: "active", label: "In progress", statusFilter: "repair-in-progress" },
+  { key: "completed", label: "Completed", statusFilter: "repair-completed" },
+  { key: "rejected", label: "Rejected", statusFilter: "rejected" },
+];
 
 const PROGRESS_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   "missing-submission": "The target submission could not be found.",
   "invalid-stage": "Select a valid repair stage (In progress or After repair).",
-  "privacy-required": "Complete the privacy check on the progress photo before uploading.",
+  "privacy-required":
+    "Complete the privacy check on the progress photo before uploading.",
   "missing-image": "Select a repair progress photo before submitting.",
-  "invalid-image-type": "Only valid JPG, PNG, and WebP progress photos are accepted.",
+  "invalid-image-type":
+    "Only valid JPG, PNG, and WebP progress photos are accepted.",
   "too-large": "The progress photo must be 10 MB or smaller.",
   "invalid-date": "The photo capture date is invalid or set in the future.",
-  duplicate: "This exact progress photo has already been uploaded for this report.",
-  failed: "The progress image could not be added. Check every field and try again.",
+  duplicate:
+    "This exact progress photo has already been uploaded for this report.",
+  failed:
+    "The progress image could not be added. Check every field and try again.",
+};
+
+const PRIORITY_RANK: Readonly<Record<string, number>> = {
+  pending: 0,
+  verified: 1,
+  "assigned-for-repair": 2,
+  "repair-in-progress": 3,
+  "repair-completed": 4,
+  rejected: 5,
 };
 
 function getFilter(value: string | string[] | undefined): string {
@@ -64,6 +99,18 @@ function getFilter(value: string | string[] | undefined): string {
     return value[0].trim();
   }
   return "";
+}
+
+function normalizeSortMode(raw: string): SortMode {
+  if (
+    raw === "oldest" ||
+    raw === "priority" ||
+    raw === "accuracy" ||
+    raw === "confidence"
+  ) {
+    return raw;
+  }
+  return "newest";
 }
 
 function displayDefect(value: string): string {
@@ -87,6 +134,12 @@ function formatDate(value: string | null | undefined): string {
   return DATE_TIME_FORMATTER.format(parsed);
 }
 
+function getMaxDateTimeLocal(): string {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  return now.toISOString().slice(0, 16);
+}
+
 function formatDeviceName(
   manufacturer: string | null | undefined,
   model: string | null | undefined,
@@ -107,12 +160,37 @@ function hasValidCoordinates(
   latitude: number;
   longitude: number;
 } {
-  return (
-    typeof submission.latitude === "number" &&
-    typeof submission.longitude === "number" &&
-    Number.isFinite(submission.latitude) &&
-    Number.isFinite(submission.longitude)
-  );
+  return isValidGpsCoordinate(submission.latitude, submission.longitude);
+}
+
+function buildAdminFilterHref(
+  current: {
+    collector?: string;
+    defect?: string;
+    q?: string;
+    sort?: string;
+    source?: string;
+    status?: string;
+  },
+  overrides: Partial<{
+    collector: string;
+    defect: string;
+    q: string;
+    sort: string;
+    source: string;
+    status: string;
+  }>,
+): string {
+  const merged = { ...current, ...overrides };
+  const params = new URLSearchParams();
+  if (merged.status) params.set("status", merged.status);
+  if (merged.defect) params.set("defect", merged.defect);
+  if (merged.source) params.set("source", merged.source);
+  if (merged.collector) params.set("collector", merged.collector);
+  if (merged.q) params.set("q", merged.q);
+  if (merged.sort && merged.sort !== "newest") params.set("sort", merged.sort);
+  const queryString = params.toString();
+  return queryString ? `/admin?${queryString}` : "/admin";
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -122,6 +200,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const archiveResult = getFilter(params.archive);
   const restoreResult = getFilter(params.restore);
   const progressResult = getFilter(params.progress);
+  const searchQuery = getFilter(params.q);
+  const sortMode = normalizeSortMode(getFilter(params.sort));
 
   const filters: SubmissionFilters = {
     collector: getFilter(params.collector),
@@ -131,15 +211,20 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   };
 
   const hasActiveFilters = Boolean(
-    filters.collector || filters.defect || filters.source || filters.status,
+    filters.collector ||
+      filters.defect ||
+      filters.source ||
+      filters.status ||
+      searchQuery ||
+      sortMode !== "newest",
   );
 
-  let submissions: RoadSubmission[] = [];
+  let rawSubmissions: RoadSubmission[] = [];
   let progressImages: RoadProgressImage[] = [];
   let configurationError = "";
 
   try {
-    [submissions, progressImages] = await Promise.all([
+    [rawSubmissions, progressImages] = await Promise.all([
       listSubmissions(filters),
       listProgressImages(),
     ]);
@@ -148,6 +233,65 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       "Persistent storage is not configured yet. Connect Neon and Vercel Blob to activate the dashboard.";
   }
 
+  // Apply keyword search & sorting
+  const normalizedQuery = searchQuery.toLowerCase();
+  const filteredSubmissions = normalizedQuery
+    ? rawSubmissions.filter((submission) => {
+        const haystack = [
+          submission.id,
+          submission.area_name,
+          submission.collector_id,
+          submission.suspected_defect,
+          displayDefect(submission.suspected_defect),
+          submission.review_note ?? "",
+          submission.device_manufacturer ?? "",
+          submission.device_model ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(normalizedQuery);
+      })
+    : rawSubmissions;
+
+  const submissions = [...filteredSubmissions].sort((a, b) => {
+    if (sortMode === "oldest") {
+      return (
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    }
+    if (sortMode === "priority") {
+      const rankDiff =
+        (PRIORITY_RANK[a.workflow_status] ?? 99) -
+        (PRIORITY_RANK[b.workflow_status] ?? 99);
+      if (rankDiff !== 0) return rankDiff;
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+    if (sortMode === "accuracy") {
+      const accA =
+        typeof a.gps_accuracy === "number"
+          ? a.gps_accuracy
+          : Number.POSITIVE_INFINITY;
+      const accB =
+        typeof b.gps_accuracy === "number"
+          ? b.gps_accuracy
+          : Number.POSITIVE_INFINITY;
+      return accA - accB;
+    }
+    if (sortMode === "confidence") {
+      const confA =
+        typeof a.ai_confidence === "number" ? a.ai_confidence : -1;
+      const confB =
+        typeof b.ai_confidence === "number" ? b.ai_confidence : -1;
+      return confB - confA;
+    }
+    return (
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  });
+
+  // Operational metrics & telemetry
   const summary = submissions.reduce(
     (totals, submission) => {
       totals.total += 1;
@@ -157,10 +301,62 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       else if (submission.workflow_status === "repair-completed")
         totals.completed += 1;
       else totals.active += 1;
+
+      if (submission.source === "drone-ai") totals.droneCount += 1;
+      else totals.manualCount += 1;
+
+      if (submission.privacy_processed) {
+        totals.privacyProcessedCount += 1;
+        totals.totalBlurredRegions += submission.privacy_blur_count ?? 0;
+      }
+
+      if (
+        typeof submission.gps_accuracy === "number" &&
+        Number.isFinite(submission.gps_accuracy)
+      ) {
+        totals.gpsAccuracySum += submission.gps_accuracy;
+        totals.gpsAccuracyCount += 1;
+      }
+
+      if (
+        typeof submission.ai_confidence === "number" &&
+        Number.isFinite(submission.ai_confidence)
+      ) {
+        totals.aiConfidenceSum += submission.ai_confidence;
+        totals.aiConfidenceCount += 1;
+      }
+
       return totals;
     },
-    { active: 0, completed: 0, pending: 0, rejected: 0, total: 0, verified: 0 },
+    {
+      active: 0,
+      aiConfidenceCount: 0,
+      aiConfidenceSum: 0,
+      completed: 0,
+      droneCount: 0,
+      gpsAccuracyCount: 0,
+      gpsAccuracySum: 0,
+      manualCount: 0,
+      pending: 0,
+      privacyProcessedCount: 0,
+      rejected: 0,
+      total: 0,
+      totalBlurredRegions: 0,
+      verified: 0,
+    },
   );
+
+  // Compute top defect hotspots by area name
+  const areaCounts = new Map<string, number>();
+  for (const sub of submissions) {
+    const cleanArea = sub.area_name.trim();
+    if (cleanArea) {
+      areaCounts.set(cleanArea, (areaCounts.get(cleanArea) ?? 0) + 1);
+    }
+  }
+  const topHotspots = [...areaCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
 
   const progressBySubmission = new Map<string, RoadProgressImage[]>();
   for (const image of progressImages) {
@@ -170,13 +366,37 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   }
 
   const mappedLocationsCount = submissions.filter(hasValidCoordinates).length;
-  const filterFormKey = `${filters.status}|${filters.defect}|${filters.source}|${filters.collector}`;
+  const privacyComplianceRate =
+    summary.total > 0
+      ? Math.round((summary.privacyProcessedCount / summary.total) * 100)
+      : 100;
+  const averageGpsAccuracy =
+    summary.gpsAccuracyCount > 0
+      ? Math.round(summary.gpsAccuracySum / summary.gpsAccuracyCount)
+      : null;
+  const averageAiConfidence =
+    summary.aiConfidenceCount > 0
+      ? Math.round(
+          (summary.aiConfidenceSum / summary.aiConfidenceCount) * 100,
+        )
+      : null;
+
+  const filterState = {
+    collector: filters.collector,
+    defect: filters.defect,
+    q: searchQuery,
+    sort: sortMode,
+    source: filters.source,
+    status: filters.status,
+  };
+  const filterFormKey = `${filters.status}|${filters.defect}|${filters.source}|${filters.collector}|${searchQuery}|${sortMode}`;
+  const maxDateTimeLocal = getMaxDateTimeLocal();
 
   return (
     <main className="admin-page">
       <header className="admin-header">
         <Link className="brand" href="/">
-          <span className="brand-mark" aria-hidden="true">
+          <span aria-hidden="true" className="brand-mark">
             GR
           </span>
           <span>
@@ -184,11 +404,31 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <small>Administrator dashboard</small>
           </span>
         </Link>
-        <form action={logoutAction}>
-          <button className="text-button" type="submit">
-            Sign out
-          </button>
-        </form>
+
+        <nav
+          aria-label="Administrator navigation"
+          style={{
+            alignItems: "center",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.75rem",
+          }}
+        >
+          <Link className="text-button" href="/">
+            Public map
+          </Link>
+          <Link className="text-button" href="/admin/archives">
+            Archives
+          </Link>
+          <Link className="text-button" href="/admin/login?switch=true">
+            Admin login
+          </Link>
+          <form action={logoutAction} style={{ margin: 0 }}>
+            <button className="text-button" type="submit">
+              Sign out
+            </button>
+          </form>
+        </nav>
       </header>
 
       <section className="admin-content">
@@ -202,6 +442,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </p>
           </div>
           <div className="admin-title-actions">
+            <Link className="button secondary" href="/admin/login?switch=true">
+              Login page
+            </Link>
             <Link className="button secondary" href="/admin/archives">
               Archives
             </Link>
@@ -264,22 +507,99 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </p>
         ) : null}
 
-        <div className="metric-grid">
-          {(
-            ["total", "pending", "verified", "active", "completed", "rejected"] as const
-          ).map((key) => (
-            <article className={`metric-card metric-${key}`} key={key}>
-              <span>{METRIC_LABELS[key] ?? key}</span>
-              <strong>{summary[key]}</strong>
-            </article>
-          ))}
+        {/* Interactive Quick-Filter Metric Cards */}
+        <div className="metric-grid" role="region" aria-label="Submission status summary">
+          {METRIC_CARDS.map(({ key, label, statusFilter }) => {
+            const isSelected = (filters.status ?? "") === statusFilter;
+            return (
+              <Link
+                aria-current={isSelected ? "true" : undefined}
+                className={`metric-card metric-${key}`}
+                href={buildAdminFilterHref(filterState, {
+                  status: isSelected && statusFilter !== "" ? "" : statusFilter,
+                })}
+                key={key}
+                style={{
+                  outline: isSelected ? "2px solid currentColor" : undefined,
+                  textDecoration: "none",
+                }}
+                title={`Filter by ${label}`}
+              >
+                <span>{label}</span>
+                <strong>{summary[key]}</strong>
+              </Link>
+            );
+          })}
         </div>
+
+        {/* Field Telemetry & Hotspot Insights */}
+        {summary.total > 0 ? (
+          <div
+            aria-label="Operational telemetry"
+            style={{
+              display: "grid",
+              gap: "0.75rem",
+              gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+              marginBottom: "1.25rem",
+            }}
+          >
+            <div className="metric-card">
+              <span>Source split</span>
+              <strong>
+                {summary.manualCount} Manual · {summary.droneCount} Drone
+              </strong>
+            </div>
+            <div className="metric-card">
+              <span>Privacy shield</span>
+              <strong>
+                {privacyComplianceRate}% verified ({summary.totalBlurredRegions}{" "}
+                blurred)
+              </strong>
+            </div>
+            <div className="metric-card">
+              <span>Signal precision</span>
+              <strong>
+                {averageGpsAccuracy !== null
+                  ? `±${averageGpsAccuracy}m GPS`
+                  : "No GPS"}
+                {averageAiConfidence !== null
+                  ? ` · ${averageAiConfidence}% AI`
+                  : ""}
+              </strong>
+            </div>
+            {topHotspots.length > 0 ? (
+              <div className="metric-card">
+                <span>Top hotspot corridors</span>
+                <strong style={{ fontSize: "0.95rem" }}>
+                  {topHotspots
+                    .map(([area, count]) => `${area} (${count})`)
+                    .join(" · ")}
+                </strong>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <form className="filter-bar" key={filterFormKey} method="get">
           <div className="filter-heading">
-            <strong>Refine records</strong>
-            <span>Use one or more filters to focus the review queue.</span>
+            <strong>Refine & sort records</strong>
+            <span>
+              Search by road name, report ID, collector, or filter the review
+              queue.
+            </span>
           </div>
+
+          <label>
+            <span>Keyword search</span>
+            <input
+              defaultValue={searchQuery}
+              maxLength={80}
+              name="q"
+              placeholder="Area, report ID, or note…"
+              type="search"
+            />
+          </label>
+
           <label>
             <span>Status</span>
             <select defaultValue={filters.status} name="status">
@@ -291,6 +611,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               ))}
             </select>
           </label>
+
           <label>
             <span>Defect</span>
             <select defaultValue={filters.defect} name="defect">
@@ -302,6 +623,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               ))}
             </select>
           </label>
+
           <label>
             <span>Source</span>
             <select defaultValue={filters.source} name="source">
@@ -310,6 +632,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <option value="drone-ai">Drone AI</option>
             </select>
           </label>
+
           <label>
             <span>Collector</span>
             <input
@@ -319,12 +642,24 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               placeholder="Collector or Operator ID"
             />
           </label>
+
+          <label>
+            <span>Sort order</span>
+            <select defaultValue={sortMode} name="sort">
+              <option value="newest">Newest first</option>
+              <option value="priority">Triage priority (Pending first)</option>
+              <option value="oldest">Oldest first</option>
+              <option value="accuracy">Best GPS accuracy</option>
+              <option value="confidence">Highest AI confidence</option>
+            </select>
+          </label>
+
           <button className="button primary" type="submit">
             Apply filters
           </button>
           {hasActiveFilters ? (
             <Link className="text-button" href="/admin">
-              Clear
+              Clear all
             </Link>
           ) : null}
         </form>
@@ -361,17 +696,23 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 progressBySubmission.get(submission.id) ?? [];
               const coordsAvailable = hasValidCoordinates(submission);
               const statusLabel =
-                WORKFLOW_STATUS_LABELS[submission.workflow_status] ??
-                submission.workflow_status;
+                WORKFLOW_STATUS_LABELS[
+                  submission.workflow_status as WorkflowStatus
+                ] ?? submission.workflow_status;
+              const shortId = submission.id.slice(0, 8).toUpperCase();
 
               return (
-                <article className="submission-card" key={submission.id}>
+                <article
+                  className="submission-card"
+                  id={`submission-${submission.id}`}
+                  key={submission.id}
+                >
                   <div className="submission-image">
                     <Image
                       alt={`Road submission from ${submission.area_name}`}
                       fill
                       sizes="(max-width: 820px) 100vw, 320px"
-                      src={`/api/images/${submission.id}`}
+                      src={`/api/images/${encodeURIComponent(submission.id)}`}
                       unoptimized
                     />
                     <span
@@ -380,18 +721,50 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       {statusLabel}
                     </span>
                   </div>
+
                   <div className="submission-body">
                     <div className="submission-title">
                       <div>
-                        <h3>{submission.area_name}</h3>
+                        <div
+                          style={{
+                            alignItems: "center",
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "0.5rem",
+                          }}
+                        >
+                          <h3>{submission.area_name}</h3>
+                          <code style={{ fontSize: "0.78rem", opacity: 0.75 }}>
+                            #{shortId}
+                          </code>
+                        </div>
                         <p>{displayDefect(submission.suspected_defect)}</p>
                       </div>
-                      <small>{formatDate(submission.created_at)}</small>
+                      <div style={{ textAlign: "right" }}>
+                        <small style={{ display: "block" }}>
+                          Reported: {formatDate(submission.created_at)}
+                        </small>
+                        {submission.reviewed_at ? (
+                          <small style={{ display: "block", opacity: 0.8 }}>
+                            Reviewed: {formatDate(submission.reviewed_at)}
+                          </small>
+                        ) : null}
+                      </div>
                     </div>
+
                     <dl className="submission-meta">
                       <div>
                         <dt>Collector</dt>
-                        <dd>{submission.collector_id}</dd>
+                        <dd>
+                          <Link
+                            href={buildAdminFilterHref(filterState, {
+                              collector: submission.collector_id,
+                            })}
+                            title="Filter by this collector"
+                          >
+                            {submission.collector_id}
+                          </Link>
+                        </dd>
                       </div>
                       <div>
                         <dt>Source</dt>
@@ -406,7 +779,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         <dd>
                           {submission.privacy_processed
                             ? `${submission.privacy_blur_count} region${submission.privacy_blur_count === 1 ? "" : "s"} blurred`
-                            : "Legacy record"}
+                            : "Needs privacy scan"}
                         </dd>
                       </div>
                       {submission.source === "drone-ai" ? (
@@ -459,7 +832,41 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       )}
                     </dl>
 
-                    <PrivacyRecheck submissionId={submission.id} />
+                    {submission.review_note ? (
+                      <p
+                        className="status-update-message"
+                        style={{ margin: "0.5rem 0", fontSize: "0.9rem" }}
+                      >
+                        <strong>Latest review note:</strong>{" "}
+                        {submission.review_note}
+                      </p>
+                    ) : null}
+
+                    <div
+                      style={{
+                        alignItems: "center",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "0.75rem",
+                      }}
+                    >
+                      <PrivacyRecheck submissionId={submission.id} />
+
+                      {coordsAvailable &&
+                      statusAllowsDirections(submission.workflow_status) ? (
+                        <a
+                          className="directions-button"
+                          href={getDirectionsUrl(
+                            submission.latitude,
+                            submission.longitude,
+                          )}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          Show directions
+                        </a>
+                      ) : null}
+                    </div>
 
                     {submissionProgress.length > 0 ? (
                       <div className="admin-progress-gallery">
@@ -472,7 +879,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                   alt={`${displayProgressStage(progress.stage)} road repair`}
                                   fill
                                   sizes="180px"
-                                  src={`/api/progress-images/${progress.id}`}
+                                  src={`/api/progress-images/${encodeURIComponent(progress.id)}`}
                                   unoptimized
                                 />
                               </span>
@@ -493,21 +900,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           ))}
                         </div>
                       </div>
-                    ) : null}
-
-                    {coordsAvailable &&
-                    statusAllowsDirections(submission.workflow_status) ? (
-                      <a
-                        className="directions-button"
-                        href={getDirectionsUrl(
-                          submission.latitude,
-                          submission.longitude,
-                        )}
-                        rel="noopener noreferrer"
-                        target="_blank"
-                      >
-                        Show directions
-                      </a>
                     ) : null}
 
                     <form
@@ -571,7 +963,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           </label>
                           <label>
                             <span>Photo date and time</span>
-                            <input name="capturedAt" type="datetime-local" />
+                            <input
+                              max={maxDateTimeLocal}
+                              name="capturedAt"
+                              type="datetime-local"
+                            />
                           </label>
                           <label className="progress-note-field">
                             <span>Public progress note</span>
@@ -617,7 +1013,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             })}
 
             {!configurationError && submissions.length === 0 ? (
-              <p className="empty-state">No submissions match these filters.</p>
+              <div className="empty-state">
+                <p>No submissions match these filters.</p>
+                {hasActiveFilters ? (
+                  <Link className="button secondary" href="/admin">
+                    Reset filters
+                  </Link>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </section>

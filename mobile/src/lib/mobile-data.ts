@@ -109,6 +109,13 @@ function generateDeviceToken(): string {
   return token;
 }
 
+function generateQueueId(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  return `queue-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export async function getDeviceIdentity(): Promise<DeviceIdentity> {
   const existing = await readJson<DeviceIdentity | null>(
     IDENTITY_FILE,
@@ -163,9 +170,7 @@ export async function queueReport(
   const queue = await getQueuedReports();
   const newEntry: QueuedReport = {
     ...draft,
-    queueId: crypto.randomUUID
-      ? crypto.randomUUID()
-      : `queue-${Date.now()}-${Math.random()}`,
+    queueId: generateQueueId(),
     queuedAt: new Date().toISOString(),
   };
   await writeJson(QUEUE_FILE, WEB_STORAGE_KEYS.queue, [...queue, newEntry]);
@@ -197,4 +202,9 @@ export async function getCachedMyReports(): Promise<any[]> {
 
 export async function saveCachedMyReports(reports: any[]): Promise<void> {
   await writeJson(MY_REPORTS_CACHE_FILE, WEB_STORAGE_KEYS.myReports, reports);
+}
+
+/** Alias for compatibility with screens calling cacheMyReports */
+export async function cacheMyReports(reports: any[]): Promise<void> {
+  return saveCachedMyReports(reports);
 }

@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import * as Updates from 'expo-updates';
 import React, { useState } from 'react';
 import {
@@ -112,17 +111,14 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
 
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.searchBar,
-          isFocused && styles.searchBarFocused,
-        ]}>
-        <Ionicons
-          color={isFocused ? palette.primary : palette.muted}
-          name="search"
-          size={18}
-          style={styles.searchIcon}
-        />
+      <View style={[styles.searchBar, isFocused && styles.searchBarFocused]}>
+        <Text
+          style={[
+            styles.searchIcon,
+            isFocused && { color: palette.primary },
+          ]}>
+          ⌕
+        </Text>
         <TextInput
           accessibilityLabel="Search reports by area"
           autoCapitalize="none"
@@ -144,7 +140,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
             hitSlop={8}
             onPress={() => handleChange('')}
             style={styles.clearButton}>
-            <Ionicons color={palette.muted} name="close-circle" size={18} />
+            <Text style={styles.clearIcon}>✕</Text>
           </Pressable>
         ) : null}
       </View>
@@ -165,11 +161,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
         {isBusy ? (
           <ActivityIndicator color={palette.primary} size="small" />
         ) : (
-          <Ionicons
-            color={palette.primary}
-            name="cloud-download-outline"
-            size={17}
-          />
+          <Text style={styles.syncIcon}>↻</Text>
         )}
         <Text style={styles.installText}>
           {isCheckingUpdate
@@ -205,7 +197,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     height: 44,
-    paddingHorizontal: 13,
+    paddingHorizontal: 14,
     shadowColor: '#14231c',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -215,6 +207,9 @@ const styles = StyleSheet.create({
     borderColor: palette.primary,
   },
   searchIcon: {
+    color: palette.muted,
+    fontSize: 17,
+    fontWeight: '800',
     marginRight: 8,
   },
   input: {
@@ -225,8 +220,18 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   clearButton: {
+    alignItems: 'center',
+    backgroundColor: '#f2ede1',
+    borderRadius: 999,
+    height: 22,
+    justifyContent: 'center',
     marginLeft: 6,
-    padding: 2,
+    width: 22,
+  },
+  clearIcon: {
+    color: palette.muted,
+    fontSize: 11,
+    fontWeight: '900',
   },
   installButton: {
     alignItems: 'center',
@@ -246,6 +251,11 @@ const styles = StyleSheet.create({
   },
   installButtonDisabled: {
     opacity: 0.65,
+  },
+  syncIcon: {
+    color: palette.primary,
+    fontSize: 15,
+    fontWeight: '900',
   },
   installText: {
     color: palette.primary,

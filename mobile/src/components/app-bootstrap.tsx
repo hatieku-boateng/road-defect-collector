@@ -28,7 +28,7 @@ export default function AppBootstrap() {
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   const triggerSafeSync = useCallback(async () => {
-    if (syncInFlightRef.current) return;
+    if (Platform.OS === 'web' || syncInFlightRef.current) return;
     syncInFlightRef.current = true;
     try {
       await syncMobileData();
@@ -40,7 +40,13 @@ export default function AppBootstrap() {
   }, []);
 
   useEffect(() => {
-    void triggerSafeSync();
+    if (Platform.OS === 'web') {
+      return;
+    }
+
+    const initialTimer = setTimeout(() => {
+      void triggerSafeSync();
+    }, 1200);
 
     const interval = setInterval(() => {
       if (appStateRef.current === 'active') {
@@ -61,27 +67,26 @@ export default function AppBootstrap() {
 
     let notificationSubscription: Notifications.EventSubscription | null = null;
 
-    if (Platform.OS !== 'web') {
-      try {
-        void Notifications.getLastNotificationResponseAsync()
-          .then((response) => {
-            if (response) {
-              router.push('/activity');
-            }
-          })
-          .catch(() => {});
-
-        notificationSubscription =
-          Notifications.addNotificationResponseReceivedListener(() => {
-            void triggerSafeSync();
+    try {
+      void Notifications.getLastNotificationResponseAsync()
+        .then((response) => {
+          if (response) {
             router.push('/activity');
-          });
-      } catch {
-        // Ignore listener registration errors on unsupported simulators/environments
-      }
+          }
+        })
+        .catch(() => {});
+
+      notificationSubscription =
+        Notifications.addNotificationResponseReceivedListener(() => {
+          void triggerSafeSync();
+          router.push('/activity');
+        });
+    } catch {
+      // Ignore listener registration errors on unsupported simulators/environments
     }
 
     return () => {
+      clearTimeout(initialTimer);
       clearInterval(interval);
       appStateSubscription.remove();
       notificationSubscription?.remove();

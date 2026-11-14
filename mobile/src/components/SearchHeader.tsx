@@ -1,34 +1,76 @@
-import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Updates from 'expo-updates';
+import React, { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+
+import { palette } from '@/constants/theme';
 
 interface SearchHeaderProps {
   onSearch: (query: string) => void;
+  placeholder?: string;
 }
 
-export const SearchHeader: React.FC<SearchHeaderProps> = ({ onSearch }) => {
+function showNotice(title: string, message: string) {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.alert(`${title}\n\n${message}`);
+    return;
+  }
+  Alert.alert(title, message);
+}
+
+export const SearchHeader: React.FC<SearchHeaderProps> = ({
+  onSearch,
+  placeholder = 'Search by area (e.g. Sowutuom, Anyaa)...',
+}) => {
   const [query, setQuery] = useState('');
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const isBusy = isCheckingUpdate || isInstallingUpdate;
 
   const handleUpdateInstall = async () => {
+    if (isInstallingUpdate) return;
     try {
       setIsInstallingUpdate(true);
       await Updates.fetchUpdateAsync();
       await Updates.reloadAsync();
     } catch {
-      Alert.alert('Update Install Failed', 'Unable to install the update. Please try again later.');
+      showNotice(
+        'Update Install Failed',
+        'Unable to install the update. Please try again later.',
+      );
     } finally {
       setIsInstallingUpdate(false);
     }
   };
 
   const handleUpdateCheck = async () => {
+    if (isBusy) return;
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
+      return;
+    }
+
     try {
       setIsCheckingUpdate(true);
       if (!Updates.isEnabled) {
-        Alert.alert('Updates Unavailable', 'Updates are not enabled for this build.');
+        showNotice(
+          'Updates Unavailable',
+          'Over-the-air updates are not enabled in development or Expo Go builds.',
+        );
         return;
       }
 
@@ -36,20 +78,28 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({ onSearch }) => {
       if (update.isAvailable) {
         Alert.alert(
           'Update Available',
-          'A new version of the Road Collector is ready. Download and restart now?',
+          'A new version of the Ghana Road Collector is ready. Download and restart now?',
           [
-            { text: 'Cancel', style: 'cancel' },
+            { text: 'Later', style: 'cancel' },
             {
               text: 'Install Now',
-              onPress: handleUpdateInstall,
+              onPress: () => {
+                void handleUpdateInstall();
+              },
             },
-          ]
+          ],
         );
       } else {
-        Alert.alert('Up to Date', 'You are running the latest version of the app.');
+        showNotice(
+          'Up to Date',
+          'You are running the latest version of the app.',
+        );
       }
     } catch {
-      Alert.alert('Update Check Failed', 'Unable to check for updates. Please try again later.');
+      showNotice(
+        'Update Check Failed',
+        'Unable to check for updates right now. Please verify your internet connection.',
+      );
     } finally {
       setIsCheckingUpdate(false);
     }
@@ -62,78 +112,145 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({ onSearch }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchBar}>
-        <Ionicons name="search" size={18} color="#94a3b8" style={styles.searchIcon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Search by area (e.g. Sowutuom, Anyaa)..."
-          placeholderTextColor="#64748b"
-          value={query}
-          onChangeText={handleChange}
+      <View
+        style={[
+          styles.searchBar,
+          isFocused && styles.searchBarFocused,
+        ]}>
+        <Ionicons
+          color={isFocused ? palette.primary : palette.muted}
+          name="search"
+          size={18}
+          style={styles.searchIcon}
         />
-        {query.length > 0 && (
-          <TouchableOpacity onPress={() => handleChange('')}>
-            <Ionicons name="close-circle" size={18} color="#94a3b8" />
-          </TouchableOpacity>
-        )}
+        <TextInput
+          accessibilityLabel="Search reports by area"
+          autoCapitalize="none"
+          autoCorrect={false}
+          clearButtonMode="never"
+          onBlur={() => setIsFocused(false)}
+          onChangeText={handleChange}
+          onFocus={() => setIsFocused(true)}
+          placeholder={placeholder}
+          placeholderTextColor={palette.muted}
+          returnKeyType="search"
+          style={styles.input}
+          value={query}
+        />
+        {query.length > 0 ? (
+          <Pressable
+            accessibilityLabel="Clear search query"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => handleChange('')}
+            style={styles.clearButton}>
+            <Ionicons color={palette.muted} name="close-circle" size={18} />
+          </Pressable>
+        ) : null}
       </View>
 
-      <TouchableOpacity
-        style={styles.installButton}
-        onPress={handleUpdateCheck}
-        disabled={isCheckingUpdate || isInstallingUpdate}
-      >
-        <Ionicons name="cloud-download-outline" size={18} color="#f59e0b" />
+      <Pressable
+        accessibilityLabel="Check for app updates"
+        accessibilityRole="button"
+        accessibilityState={{ busy: isBusy, disabled: isBusy }}
+        disabled={isBusy}
+        onPress={() => {
+          void handleUpdateCheck();
+        }}
+        style={({ pressed }) => [
+          styles.installButton,
+          isBusy && styles.installButtonDisabled,
+          pressed && !isBusy && styles.installButtonPressed,
+        ]}>
+        {isBusy ? (
+          <ActivityIndicator color={palette.primary} size="small" />
+        ) : (
+          <Ionicons
+            color={palette.primary}
+            name="cloud-download-outline"
+            size={17}
+          />
+        )}
         <Text style={styles.installText}>
-          {isCheckingUpdate ? 'Checking...' : isInstallingUpdate ? 'Installing...' : 'Sync'}
+          {isCheckingUpdate
+            ? 'Checking…'
+            : isInstallingUpdate
+              ? 'Updating…'
+              : 'Sync'}
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 };
 
+export default SearchHeader;
+
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: palette.canvas,
+    borderBottomColor: palette.border,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#0f172a',
-    borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
-    gap: 10,
   },
   searchBar: {
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: 999,
+    borderWidth: 1.5,
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1e293b',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 40,
+    height: 44,
+    paddingHorizontal: 13,
+    shadowColor: '#14231c',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+  },
+  searchBarFocused: {
+    borderColor: palette.primary,
   },
   searchIcon: {
-    marginRight: 6,
+    marginRight: 8,
   },
   input: {
+    color: palette.text,
     flex: 1,
-    color: '#f8fafc',
     fontSize: 14,
+    fontWeight: '600',
+    paddingVertical: 0,
+  },
+  clearButton: {
+    marginLeft: 6,
+    padding: 2,
   },
   installButton: {
-    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
-    paddingHorizontal: 10,
-    height: 40,
-    borderRadius: 8,
+    backgroundColor: palette.primarySoft,
+    borderColor: 'rgba(11, 107, 69, 0.22)',
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#334155',
-    gap: 4,
+    flexDirection: 'row',
+    gap: 6,
+    height: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  installButtonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }],
+  },
+  installButtonDisabled: {
+    opacity: 0.65,
   },
   installText: {
-    color: '#f59e0b',
+    color: palette.primary,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
 });

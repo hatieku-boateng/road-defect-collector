@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import {
   DEFECT_TYPE_LABELS,
   DEFECT_TYPES,
@@ -26,6 +27,7 @@ import ImagePicker from "../../collect/image-picker";
 import { logoutAction } from "../actions";
 import MapShell from "./map-shell";
 import PrivacyRecheck from "./privacy-recheck";
+import "./admin-modern.css";
 
 export const dynamic = "force-dynamic";
 
@@ -50,13 +52,21 @@ type SortMode =
   | "accuracy"
   | "confidence";
 
+type MetricKey =
+  | "total"
+  | "pending"
+  | "verified"
+  | "active"
+  | "completed"
+  | "rejected";
+
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "short",
 });
 
 const METRIC_CARDS: ReadonlyArray<{
-  key: "total" | "pending" | "verified" | "active" | "completed" | "rejected";
+  key: MetricKey;
   label: string;
   statusFilter: string;
 }> = [
@@ -66,6 +76,17 @@ const METRIC_CARDS: ReadonlyArray<{
   { key: "active", label: "In progress", statusFilter: "repair-in-progress" },
   { key: "completed", label: "Completed", statusFilter: "repair-completed" },
   { key: "rejected", label: "Rejected", statusFilter: "rejected" },
+];
+
+const DISTRIBUTION_SEGMENTS: ReadonlyArray<{
+  key: Exclude<MetricKey, "total">;
+  label: string;
+}> = [
+  { key: "pending", label: "Pending" },
+  { key: "verified", label: "Verified" },
+  { key: "active", label: "In progress" },
+  { key: "completed", label: "Completed" },
+  { key: "rejected", label: "Rejected" },
 ];
 
 const PROGRESS_ERROR_MESSAGES: Readonly<Record<string, string>> = {
@@ -125,6 +146,12 @@ function displayProgressStage(stage: string): string {
     return PROGRESS_STAGE_LABELS[stage as ProgressImageStage];
   }
   return stage.replaceAll("-", " ");
+}
+
+function toTimestamp(value: string | null | undefined): number {
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 function formatDate(value: string | null | undefined): string {
@@ -233,7 +260,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       "Persistent storage is not configured yet. Connect Neon and Vercel Blob to activate the dashboard.";
   }
 
-  // Apply keyword search & sorting
+  // Keyword search and sorting
   const normalizedQuery = searchQuery.toLowerCase();
   const filteredSubmissions = normalizedQuery
     ? rawSubmissions.filter((submission) => {
@@ -255,43 +282,41 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const submissions = [...filteredSubmissions].sort((a, b) => {
     if (sortMode === "oldest") {
-      return (
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
+      return toTimestamp(a.created_at) - toTimestamp(b.created_at);
     }
     if (sortMode === "priority") {
       const rankDiff =
         (PRIORITY_RANK[a.workflow_status] ?? 99) -
         (PRIORITY_RANK[b.workflow_status] ?? 99);
       if (rankDiff !== 0) return rankDiff;
-      return (
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      return toTimestamp(b.created_at) - toTimestamp(a.created_at);
     }
     if (sortMode === "accuracy") {
       const accA =
-        typeof a.gps_accuracy === "number"
+        typeof a.gps_accuracy === "number" && Number.isFinite(a.gps_accuracy)
           ? a.gps_accuracy
           : Number.POSITIVE_INFINITY;
       const accB =
-        typeof b.gps_accuracy === "number"
+        typeof b.gps_accuracy === "number" && Number.isFinite(b.gps_accuracy)
           ? b.gps_accuracy
           : Number.POSITIVE_INFINITY;
       return accA - accB;
     }
     if (sortMode === "confidence") {
       const confA =
-        typeof a.ai_confidence === "number" ? a.ai_confidence : -1;
+        typeof a.ai_confidence === "number" && Number.isFinite(a.ai_confidence)
+          ? a.ai_confidence
+          : -1;
       const confB =
-        typeof b.ai_confidence === "number" ? b.ai_confidence : -1;
+        typeof b.ai_confidence === "number" && Number.isFinite(b.ai_confidence)
+          ? b.ai_confidence
+          : -1;
       return confB - confA;
     }
-    return (
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    return toTimestamp(b.created_at) - toTimestamp(a.created_at);
   });
 
-  // Operational metrics & telemetry
+  // Operational metrics and telemetry
   const summary = submissions.reduce(
     (totals, submission) => {
       totals.total += 1;
@@ -346,7 +371,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     },
   );
 
-  // Compute top defect hotspots by area name
+  // Top defect hotspots by area name
   const areaCounts = new Map<string, number>();
   for (const sub of submissions) {
     const cleanArea = sub.area_name.trim();
@@ -357,6 +382,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const topHotspots = [...areaCounts.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4);
+  const hotspotMax = topHotspots[0]?.[1] ?? 1;
 
   const progressBySubmission = new Map<string, RoadProgressImage[]>();
   for (const image of progressImages) {
@@ -405,15 +431,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </span>
         </Link>
 
-        <nav
-          aria-label="Administrator navigation"
-          style={{
-            alignItems: "center",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "0.75rem",
-          }}
-        >
+        <nav aria-label="Administrator navigation" className="admin-nav">
           <Link className="text-button" href="/">
             Public map
           </Link>
@@ -423,7 +441,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <Link className="text-button" href="/admin/login?switch=true">
             Admin login
           </Link>
-          <form action={logoutAction} style={{ margin: 0 }}>
+          <form action={logoutAction}>
             <button className="text-button" type="submit">
               Sign out
             </button>
@@ -435,24 +453,18 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <div className="admin-title-row">
           <div>
             <p className="eyebrow">Collection overview</p>
-            <h1>Review field submissions.</h1>
+            <h1>Review field submissions</h1>
             <p className="admin-title-summary">
               Triage new road evidence, validate privacy processing, and keep
               public maintenance records current.
             </p>
           </div>
           <div className="admin-title-actions">
-            <Link className="button secondary" href="/admin/login?switch=true">
-              Login page
-            </Link>
-            <Link className="button secondary" href="/admin/archives">
-              Archives
-            </Link>
             <Link className="button secondary" href="/drone">
               Drone AI
             </Link>
             <Link className="button primary" href="/collect">
-              Manual photo
+              Add manual photo
             </Link>
           </div>
         </div>
@@ -507,22 +519,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </p>
         ) : null}
 
-        {/* Interactive Quick-Filter Metric Cards */}
-        <div className="metric-grid" role="region" aria-label="Submission status summary">
+        {/* Quick-filter metric cards */}
+        <div
+          aria-label="Submission status summary"
+          className="metric-grid"
+          role="region"
+        >
           {METRIC_CARDS.map(({ key, label, statusFilter }) => {
             const isSelected = (filters.status ?? "") === statusFilter;
             return (
               <Link
                 aria-current={isSelected ? "true" : undefined}
-                className={`metric-card metric-${key}`}
+                className={`metric-card metric-${key}${isSelected ? " is-selected" : ""}`}
                 href={buildAdminFilterHref(filterState, {
                   status: isSelected && statusFilter !== "" ? "" : statusFilter,
                 })}
                 key={key}
-                style={{
-                  outline: isSelected ? "2px solid currentColor" : undefined,
-                  textDecoration: "none",
-                }}
                 title={`Filter by ${label}`}
               >
                 <span>{label}</span>
@@ -532,59 +544,120 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           })}
         </div>
 
-        {/* Field Telemetry & Hotspot Insights */}
         {summary.total > 0 ? (
-          <div
-            aria-label="Operational telemetry"
-            style={{
-              display: "grid",
-              gap: "0.75rem",
-              gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-              marginBottom: "1.25rem",
-            }}
-          >
-            <div className="metric-card">
-              <span>Source split</span>
-              <strong>
-                {summary.manualCount} Manual · {summary.droneCount} Drone
-              </strong>
-            </div>
-            <div className="metric-card">
-              <span>Privacy shield</span>
-              <strong>
-                {privacyComplianceRate}% verified ({summary.totalBlurredRegions}{" "}
-                blurred)
-              </strong>
-            </div>
-            <div className="metric-card">
-              <span>Signal precision</span>
-              <strong>
-                {averageGpsAccuracy !== null
-                  ? `±${averageGpsAccuracy}m GPS`
-                  : "No GPS"}
-                {averageAiConfidence !== null
-                  ? ` · ${averageAiConfidence}% AI`
-                  : ""}
-              </strong>
-            </div>
-            {topHotspots.length > 0 ? (
-              <div className="metric-card">
-                <span>Top hotspot corridors</span>
-                <strong style={{ fontSize: "0.95rem" }}>
-                  {topHotspots
-                    .map(([area, count]) => `${area} (${count})`)
-                    .join(" · ")}
-                </strong>
+          <>
+            {/* Status distribution */}
+            <div className="distribution">
+              <div className="distribution-head">
+                <strong>Where the queue stands</strong>
+                <span>
+                  {summary.total} report{summary.total === 1 ? "" : "s"} in view
+                </span>
               </div>
-            ) : null}
-          </div>
+              <div
+                aria-label={DISTRIBUTION_SEGMENTS.map(
+                  ({ key, label }) => `${label}: ${summary[key]}`,
+                ).join(", ")}
+                className="distribution-bar"
+                role="img"
+              >
+                {DISTRIBUTION_SEGMENTS.filter(({ key }) => summary[key] > 0).map(
+                  ({ key, label }) => (
+                    <span
+                      className={`seg-${key}`}
+                      key={key}
+                      style={{ flexGrow: summary[key] }}
+                      title={`${label}: ${summary[key]}`}
+                    />
+                  ),
+                )}
+              </div>
+              <ul className="distribution-legend">
+                {DISTRIBUTION_SEGMENTS.map(({ key, label }) => (
+                  <li key={key}>
+                    <i className={`seg-${key}`} />
+                    {label} {summary[key]}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Field telemetry */}
+            <div aria-label="Operational telemetry" className="insight-grid">
+              <article className="insight-card">
+                <h3>Collection source</h3>
+                <span className="insight-value">
+                  {summary.manualCount} manual
+                </span>
+                <span className="insight-note">
+                  {summary.droneCount} from drone AI
+                </span>
+              </article>
+
+              <article className="insight-card">
+                <h3>Privacy protection</h3>
+                <span className="insight-value">
+                  {privacyComplianceRate}% processed
+                </span>
+                <span className="insight-note">
+                  {summary.totalBlurredRegions} region
+                  {summary.totalBlurredRegions === 1 ? "" : "s"} blurred
+                </span>
+              </article>
+
+              <article className="insight-card">
+                <h3>Signal precision</h3>
+                <span className="insight-value">
+                  {averageGpsAccuracy !== null
+                    ? `±${averageGpsAccuracy} m GPS`
+                    : "No GPS data"}
+                </span>
+                <span className="insight-note">
+                  {averageAiConfidence !== null
+                    ? `${averageAiConfidence}% average AI confidence`
+                    : "No AI detections in view"}
+                </span>
+              </article>
+
+              {topHotspots.length > 0 ? (
+                <article className="insight-card">
+                  <h3>Top hotspot corridors</h3>
+                  <ul className="hotspot-list">
+                    {topHotspots.map(([area, count]) => (
+                      <li key={area}>
+                        <Link
+                          className="hotspot-label"
+                          href={buildAdminFilterHref(filterState, {
+                            q: searchQuery === area ? "" : area,
+                          })}
+                          title={`Filter queue by ${area}`}
+                        >
+                          <span>{area}</span>
+                          <span>{count}</span>
+                        </Link>
+                        <div className="hotspot-track">
+                          <i
+                            style={
+                              {
+                                "--w": `${Math.round((count / hotspotMax) * 100)}%`,
+                              } as CSSProperties
+                            }
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ) : null}
+            </div>
+          </>
         ) : null}
 
         <form className="filter-bar" key={filterFormKey} method="get">
           <div className="filter-heading">
-            <strong>Refine & sort records</strong>
+            <strong>Refine and sort records</strong>
             <span>
-              Search by road name, report ID, collector, or filter the review
+              Search by road name, report ID or collector, or narrow the review
               queue.
             </span>
           </div>
@@ -595,7 +668,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               defaultValue={searchQuery}
               maxLength={80}
               name="q"
-              placeholder="Area, report ID, or note…"
+              placeholder="Area, report ID, or note"
               type="search"
             />
           </label>
@@ -639,7 +712,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               defaultValue={filters.collector}
               maxLength={64}
               name="collector"
-              placeholder="Collector or Operator ID"
+              placeholder="Collector or operator ID"
             />
           </label>
 
@@ -647,7 +720,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <span>Sort order</span>
             <select defaultValue={sortMode} name="sort">
               <option value="newest">Newest first</option>
-              <option value="priority">Triage priority (Pending first)</option>
+              <option value="priority">Triage priority (pending first)</option>
               <option value="oldest">Oldest first</option>
               <option value="accuracy">Best GPS accuracy</option>
               <option value="confidence">Highest AI confidence</option>
@@ -675,7 +748,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               {mappedLocationsCount === 1 ? "" : "s"}
             </span>
           </div>
-          <MapShell submissions={submissions} />
+          <div className="map-frame">
+            <MapShell submissions={submissions} />
+          </div>
         </section>
 
         <section className="dashboard-section">
@@ -711,7 +786,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     <Image
                       alt={`Road submission from ${submission.area_name}`}
                       fill
-                      sizes="(max-width: 820px) 100vw, 320px"
+                      sizes="(max-width: 900px) 100vw, 340px"
                       src={`/api/images/${encodeURIComponent(submission.id)}`}
                       unoptimized
                     />
@@ -725,28 +800,17 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <div className="submission-body">
                     <div className="submission-title">
                       <div>
-                        <div
-                          style={{
-                            alignItems: "center",
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: "0.5rem",
-                          }}
-                        >
+                        <div className="title-line">
                           <h3>{submission.area_name}</h3>
-                          <code style={{ fontSize: "0.78rem", opacity: 0.75 }}>
-                            #{shortId}
-                          </code>
+                          <code className="id-chip">#{shortId}</code>
                         </div>
                         <p>{displayDefect(submission.suspected_defect)}</p>
                       </div>
-                      <div style={{ textAlign: "right" }}>
-                        <small style={{ display: "block" }}>
-                          Reported: {formatDate(submission.created_at)}
-                        </small>
+                      <div className="submission-dates">
+                        <small>Reported {formatDate(submission.created_at)}</small>
                         {submission.reviewed_at ? (
-                          <small style={{ display: "block", opacity: 0.8 }}>
-                            Reviewed: {formatDate(submission.reviewed_at)}
+                          <small>
+                            Reviewed {formatDate(submission.reviewed_at)}
                           </small>
                         ) : null}
                       </div>
@@ -833,23 +897,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </dl>
 
                     {submission.review_note ? (
-                      <p
-                        className="status-update-message"
-                        style={{ margin: "0.5rem 0", fontSize: "0.9rem" }}
-                      >
+                      <p className="review-note-callout">
                         <strong>Latest review note:</strong>{" "}
                         {submission.review_note}
                       </p>
                     ) : null}
 
-                    <div
-                      style={{
-                        alignItems: "center",
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "0.75rem",
-                      }}
-                    >
+                    <div className="submission-tools">
                       <PrivacyRecheck submissionId={submission.id} />
 
                       {coordsAvailable &&

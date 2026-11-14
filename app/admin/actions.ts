@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { clearAdminSession } from "../../lib/admin-auth";
 
-export async function logoutAction(): Promise<never> {
+export async function logoutAction(_formData?: FormData): Promise<never> {
   try {
     await clearAdminSession();
   } catch (error) {
@@ -13,6 +13,8 @@ export async function logoutAction(): Promise<never> {
 
   try {
     revalidatePath("/admin", "layout");
+    revalidatePath("/admin/archives", "page");
+    revalidatePath("/admin/login", "page");
   } catch {
     // Ignore revalidation errors if invoked outside standard request lifecycle
   }
